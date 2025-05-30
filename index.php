@@ -1,6 +1,7 @@
 <?php
   require_once('functions.php');
   $pageData = PageData();
+  $passhash = "samplePasshash";
 ?>
 <!DOCTYPE html>
 <html>
@@ -100,6 +101,12 @@
       .textInput:focus{
         outline: none;
       }
+      .projectMenuItem{
+        padding: 2px;
+        background: #333;
+        display: inline-block;
+        margin: 10px;
+      }
       .projectButton{
         width: 200px;
         border: 1px solid #4f84;
@@ -111,6 +118,15 @@
         background: #208;
         color: #fff;
         text-shadow: 2px 2px 3px #000;
+      }
+      .deleteButton{
+        background-image: url(delete.png);
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: contain;
+        background-color: #200;
+        width: 30px;
+        height: 30px;
       }
       .textInput{
         font-size: 16px;
@@ -152,6 +168,11 @@
     </div>
     <div class="main"><?=$pageData['data']?></div>
     <script>
+    
+      var passhash
+      var URLbase = '/coordocs'
+      var main = document.querySelector('.main')
+    
       const navToURL = url => {
         var l = document.createElement('a')
         l.href = url
@@ -177,10 +198,31 @@
         }
       }
 
-      
       const loadProject = slug => {
         location.href = updateURL('p', slug, true)
       }
+
+      const deleteProject = slug => {
+        
+        let sendData = { slug, passhash }
+        var url = URLbase + '/deleteProject.php'
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sendData),
+        }).then(res => res.text()).then(data => {
+          console.log(`response to delete req: ${data}`)
+          main.innerHTML = data
+        })
+      }
+      
+      checkLogin = () => {
+        passhash = "<?=$passhash?>"
+      }
+      
+      checkLogin()
     </script>
   </body>
 </html>

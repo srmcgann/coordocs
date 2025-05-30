@@ -27,6 +27,13 @@
     return $ret==""?"0":$ret;
   }
   
+
+  function deleteProject($slug) {
+    global $link;
+    $sql = "DELETE FROM projects WHERE slug LIKE BINARY \"$slug\"";
+    mysqli_query($link, $sql);
+    echo RenderProjectMenu(GetProjects());
+  }
   
   function fullCurrentURL() {
     return ($_SERVER['HTTPS'] ? 'https' : 'http') .
@@ -36,13 +43,38 @@
 
   function RenderProjectMenu($projects){
     $ret = '';
-    forEach($projects as $project){
-      $ret .= "<button
-                class=\"projectButton\"
-                onclick=\"loadProject('{$project['slug']}')\"
-               >{$project['name']}</button><br>";
+    if(sizeof($projects)){
+      forEach($projects as $project){
+        $ret .= "<div class=\"projectMenuItem\">
+                   <button
+                    class=\"projectButton\"
+                    onclick=\"loadProject('{$project['slug']}')\"
+                   >{$project['name']}</button>
+                   <button
+                     class=\"deleteButton\"
+                     onclick=\"deleteProject('{$project['slug']}')\"
+                   ></button>
+                 </div>";
+      }
     }
     return $ret;
+  }
+  
+  function GetProjects(){
+    global $link;
+    $projects = [];
+    $sql = "SELECT * FROM projects";
+    $res = mysqli_query($link, $sql);
+    if(mysqli_num_rows($res)){
+      for($i = 0; $i < mysqli_num_rows($res); ++$i){
+        $row = mysqli_fetch_assoc($res);
+        $projects[] = [
+          'name' => $row['name'],
+          'slug' => $row['slug'],
+        ];
+      }
+    }
+    return $projects;
   }
 
   function PageData() {
@@ -71,20 +103,8 @@
                  'data' => []];
       }
     }else{
-      $sql = "SELECT * FROM projects";
-      $res = mysqli_query($link, $sql);
-      if(mysqli_num_rows($res)){
-        $projects = [];
-        for($i = 0; $i < mysqli_num_rows($res); ++$i){
-          $row = mysqli_fetch_assoc($res);
-          $projects[] = [
-            'name' => $row['name'],
-            'slug' => $row['slug'],
-          ];
-        }
-        return [ 'name' => "create or search projects",
-                 'data' => RenderProjectMenu($projects)];
-      }
+      return [ 'name' => "create or search projects",
+               'data' => RenderProjectMenu(GetProjects())];
     }
   }
   
