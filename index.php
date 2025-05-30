@@ -42,18 +42,22 @@
         cursor: pointer;
       }
       .main{
+        text-align: left;
         border: 1px solid #fff2;
         padding: 10px;
         overflow-y: auto;
         overflow-x: hidden;
         background: #123;
-        min-height: 200px;
-        max-height: calc(100vh - 200px);
-
-         color: #ffc;
-         font-family: verdana;
-         background: #000;
-       }
+        max-height: calc(100vh - 98px);
+        color: #cfe;
+        font-family: verdana;
+        background: #000;
+      }
+      .main img{
+        display: block;
+        border: 1px solid #fff4;
+        border-radius: 5px;
+      }
       .toolbarComponent{
         border-radius: 5px;
         background: #002;
@@ -180,4 +184,3 @@
     </script>
   </body>
 </html>
-
