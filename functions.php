@@ -43,7 +43,7 @@
 
   function RenderProjectMenu($projects){
     $ret = '';
-    if(sizeof($projects)){
+    if(sizeof($projects) > 0){
       forEach($projects as $project){
         $ret .= "<div class=\"projectMenuItem\">
                    <button
@@ -52,7 +52,9 @@
                    >{$project['name']}</button>
                    <button
                      class=\"deleteButton\"
-                     onclick=\"deleteProject('{$project['slug']}')\"
+                     title=\"delete this project? -> {$project['name']}\"
+                     onclick=\"deleteProject('{$project['slug']}',
+                                             '{$project['name']}')\"
                    ></button>
                  </div>";
       }

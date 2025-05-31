@@ -125,10 +125,14 @@ $file = <<<'FILE'
         background-image: url(delete.png);
         background-repeat: no-repeat;
         background-position: center center;
-        background-size: fill;
-        background-color: #200;
+        background-size: contain;
+        background-color: transparent;
+        border: none;
         width: 30px;
         height: 30px;
+        padding: 6px;
+        border-radius: 10px;
+        margin-left: 10px;
       }
       .textInput{
         font-size: 16px;
@@ -204,20 +208,21 @@ $file = <<<'FILE'
         location.href = updateURL('p', slug, true)
       }
 
-      const deleteProject = slug => {
-        
-        let sendData = { slug, passhash }
-        var url = URLbase + '/deleteProject.php'
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(sendData),
-        }).then(res => res.text()).then(data => {
-          console.log(`response to delete req: ${data}`)
-          main.innerHTML = data
-        })
+      const deleteProject = (slug, name) => {
+        if(confirm('delete this project? -> ' + name)){
+          let sendData = { slug, passhash }
+          var url = URLbase + '/deleteProject.php'
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData),
+          }).then(res => res.text()).then(data => {
+            console.log(`response to delete req: ${data}`)
+            main.innerHTML = data
+          })
+        }
       }
       
       checkLogin = () => {
