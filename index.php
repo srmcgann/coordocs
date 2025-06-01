@@ -94,12 +94,20 @@
         font-weight: 900;
         border: 1px solid #fff1;
       }
-      .pageNo{
+      #pageNo{
         min-width: 70px;
         display: inline-block;
       }
       .textInput:focus{
         outline: none;
+      }
+      .headerTitle{
+        margin-top: 2px;
+        cursor: pointer;
+        background: #4f84;
+        padding-left: 5px;
+        padding-right: 5px;
+        border-radius: 10px;
       }
       .projectMenuItem{
         padding: 2px;
@@ -140,12 +148,27 @@
         border: 1px solid #fff1;
         width: 300px;
       }
+      blockquote{
+        border-left: 5px solid #888;
+        margin: 1.5em 10px;
+        padding: .5em 10px;
+      }
+      a{
+        color: #f08;
+      }
+      a:visited{
+        color: #804;
+      }
     </style>
+    <link rel="stylesheet" href="./highlight.js/violet.min.css">
+    <script src="./highlight.js/highlight.min.js"></script>
   </head>
   <body>
     <div class="header">
-      <span onclick="location.href=location.origin+location.pathname">
-        <?=$pageData['name']?>
+      <span
+        class="headerTitle"
+        onclick="location.href=location.origin+location.pathname">
+        manage project documentation
       </span>
       <div
         class="coordocsLogo"
@@ -155,6 +178,38 @@
     </div>
     <div class="toolbar">
       <div class="toolbarComponent">
+        <span
+          class="textInput"
+        ><?=$pageData['name']?></span>
+      </div>
+      <div class="toolbarComponent">
+        <button
+          class="navButtons"
+          id="page1Button"
+          title="navigate to first page"
+          onclick="navToPage('1')"
+        >|&lt;</button>
+        <button
+          class="navButtons"
+          id="pageBackButton"
+          title="go back one page"
+          onclick="navToPage('-1')"
+        >&lt;</button>
+        <span id="pageNo">0</span>
+        <button
+          class="navButtons"
+          id="pageAdvButton"
+          title="advance one page"
+          onclick="navToPage('+1')"
+        >&gt;</button>
+        <button
+          class="navButtons"
+          id="pageLastButton"
+          title="navigate to last page"
+          onclick="navToPage('last')"
+        >&gt;|</button>
+      </div>
+      <div class="toolbarComponent">
         <input
           type="text"
           class="textInput"
@@ -162,16 +217,12 @@
           spellcheck="false"
         >
       </div>
-      <div class="toolbarComponent">
-        <button class="navButtons" title="navigate to first page">|&lt;</button>
-        <button class="navButtons" title="go back one page">&lt;</button>
-        <span class="pageNo">0</span>
-        <button class="navButtons" title="advance one page">&gt;</button>
-        <button class="navButtons" title="navigate to last page">&gt;|</button>
-      </div>
     </div>
-    <div class="main"><?=$pageData['data']?></div>
-    <script>
+
+    <div class="main"></div>
+
+    <script type="module">
+      import * as MarkdownToHTML from "./md2html.js"
     
       var passhash
       var URLbase = '/coordocs'
@@ -202,8 +253,35 @@
         }
       }
 
-      const loadProject = slug => {
-        location.href = updateURL('p', slug, true)
+      window.LoadProject = slug => {
+        location.href = updateURL('p', 1, false)
+        location.href = updateURL('s', slug, true)
+      }
+
+      const UpdateNavWidget = () => {
+        document.querySelectorAll('.main')[0].scroll(0,0)
+        document.querySelector('#pageNo').innerHTML = CurPage()
+        
+        document.querySelector('#page1Button').style.background = CurPage() > 1 ? 
+                                                 '#4f8' : '#333'
+        document.querySelector('#page1Button').style.color = CurPage() > 1 ? 
+                                                 '#032' : '#111'
+        
+        document.querySelector('#pageBackButton').style.background = CurPage() > 1 ? 
+                                                 '#4f8' : '#333'
+        document.querySelector('#pageBackButton').style.color = CurPage() > 1 ? 
+                                                 '#032' : '#111'
+        
+        
+        document.querySelector('#pageAdvButton').style.background = CurPage() < totalPages + 1 ? 
+                                                 '#4f8' : '#333'
+        document.querySelector('#pageAdvButton').style.color = CurPage() < totalPages + 1 ? 
+                                                 '#032' : '#111'
+        
+        document.querySelector('#pageLastButton').style.background = CurPage() < totalPages + 1 ? 
+                                                 '#4f8' : '#333'
+        document.querySelector('#pageLastButton').style.color = CurPage() < totalPages + 1 ? 
+                                                 '#032' : '#111'
       }
 
       const deleteProject = (slug, name) => {
@@ -223,11 +301,53 @@
         }
       }
       
-      checkLogin = () => {
-        passhash = "<?=$passhash?>"
+      window.navToPage = pg => {
+        var tgt
+        switch(pg){
+          case '1': tgt = 1; break
+          case '+1': tgt = Math.min(totalPages + 1, CurPage() + 1); break
+          case '-1': tgt = Math.max(1, CurPage() - 1); break
+          case 'last': tgt = totalPages + 1; break
+        }
+        updateURL('p', tgt, false)
+        Refresh()
       }
       
-      checkLogin()
+      const CurPage = () => {
+        var ret
+        var l = location.href.split('?')
+        if(l.length > 1){
+          l = l[1].split('p=')
+          if(l.length > 1){
+            return +(l[1].split('&')[0])
+          }else{
+            return 0
+          }
+        }else{
+          return 0
+        }
+      }
+
+      var mainEl     = document.querySelectorAll('.main')[0]
+      var slug       = `<?=$pageData['slug']?>`
+      var html       = `<?=$pageData['data']?>`
+      var totalPages = 0
+      
+      const Refresh = () => {
+        if(slug){
+          var htmlObj =
+            MarkdownToHTML.Convert(html, CurPage())
+          mainEl.innerHTML = htmlObj.html
+          totalPages = htmlObj.totalPages
+          hljs.highlightAll()
+        }else{
+          mainEl.innerHTML = html
+        }
+        
+        UpdateNavWidget()
+      }
+      
+      Refresh()
     </script>
   </body>
 </html>

@@ -48,7 +48,7 @@
         $ret .= "<div class=\"projectMenuItem\">
                    <button
                     class=\"projectButton\"
-                    onclick=\"loadProject('{$project['slug']}')\"
+                    onclick=\"window.LoadProject('{$project['slug']}')\"
                    >{$project['name']}</button>
                    <button
                      class=\"deleteButton\"
@@ -81,7 +81,11 @@
 
   function PageData() {
     global $link;
+    $page = 1;
     $url = fullCurrentURL();
+    $data = [];
+    $slug = '';
+    $name = '';
     if(!!strpos($url, '?')){
       $params = explode('&', parse_url($url)['query']);
       if(sizeof($params) > 0){
@@ -89,27 +93,33 @@
           $pair = explode('=', $param);
           $key = $pair[0];
           $val = $pair[1];
-          if($key == 'p'){
+          if($key == 'p') $page = $val;
+          if($key == 's'){
+            $slug = $val;
             $val = mysqli_real_escape_string($link, $val);
             $sql = "SELECT * FROM projects WHERE slug LIKE BINARY \"$val\"";
             $res = mysqli_query($link, $sql);
             if(mysqli_num_rows($res)){
               $row = mysqli_fetch_assoc($res);
-              return [ 'name' => $row['name'],
-                       'data' => $row['data'] ];
+              $data = str_replace('<','&lt;',
+                        str_replace('`', '\`', $row['data']));
             }
           }
         }
-      }else{
-        return [ 'name' => "create or search projects",
-                 'data' => []];
+        return [ 'name' => $row['name'],
+                 'slug' => $row['slug'],
+                 'page' => $page,
+                 'data' => $data];
       }
-    }else{
       return [ 'name' => "create or search projects",
+               'slug' => $slug,
+               'page' => $page,
                'data' => RenderProjectMenu(GetProjects())];
     }
-  }
+    return [ 'name' => "create or search projects",
+             'slug' => $slug,
+             'page' => $page,
+             'data' => RenderProjectMenu(GetProjects())];
+ }
   
 ?>
-
-
