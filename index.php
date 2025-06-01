@@ -6,6 +6,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <title>coordocs - better docs</title>
     <style>
       body, html{
         width: 100vw;
