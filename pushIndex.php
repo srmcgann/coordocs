@@ -8,6 +8,7 @@ $file = <<<'FILE'
 <!DOCTYPE html>
 <html>
   <head>
+    <title>coordocs - better docs</title>
     <style>
       body, html{
         width: 100vw;
@@ -95,10 +96,14 @@ $file = <<<'FILE'
         font-size: 20px;
         font-weight: 900;
         border: 1px solid #fff1;
+        margin-left: 0;
+        margin-right: 0;
       }
       #pageNo{
-        min-width: 70px;
+        font-size: 12px;
+        min-width: 90px;
         display: inline-block;
+        vertical-align: middle;
       }
       .textInput:focus{
         outline: none;
@@ -154,6 +159,18 @@ $file = <<<'FILE'
         border-left: 5px solid #888;
         margin: 1.5em 10px;
         padding: .5em 10px;
+      }
+      .authButtons{
+        border-radius: 5px;
+        background: #0f8;
+        color: #000;
+        min-width: 75px;
+        border: none;
+        font-family: verdana;
+        font-size: 16px;
+        cursor: pointer;
+        margin: 5px;
+        font-weight: 900;
       }
       a{
         color: #f08;
@@ -215,9 +232,14 @@ $file = <<<'FILE'
         <input
           type="text"
           class="textInput"
+          id="searchField"
           placeholder="search for something"
           spellcheck="false"
+          onkeyup="searchMaybe(event)"
         >
+      </div>
+      <div class="toolbarComponent">
+        <div id="loginContainer"></div>
       </div>
     </div>
 
@@ -230,7 +252,11 @@ $file = <<<'FILE'
       var URLbase = '/coordocs'
       var main = document.querySelector('.main')
     
-      const navToURL = url => {
+      var passhash   = 'samplePasshash'
+      var username   = ''
+      var avatar     = ''
+
+      window.navToURL = url => {
         var l = document.createElement('a')
         l.href = url
         l.target = '_blank'
@@ -259,10 +285,71 @@ $file = <<<'FILE'
         location.href = updateURL('p', 1, false)
         location.href = updateURL('s', slug, true)
       }
+      
+      window.searchMaybe = e => {
+        var searchField = document.querySelector('#searchField')
+        if(e.keyCode == 13) {
+          console.log('searching for: ', searchField.value)
+          searchField.value = ''
+        }
+      }
+      
+      
+      const SetCookie = (key, val) => {
+        document.cookie = `${key}=${val}`
+      }
+      
+      
+      const updateCookie = (key, val) => {
+        var cookieParts = document.cookie.split('; ')
+        cookieParts.forEach(part => {
+          switch(key){
+            case 'passhash': SetCookie('passhash', val); break
+            case 'username': SetCookie('username', val); break
+            case 'avatar': SetCookie('avatar', val); break
+            case 'expires': SetCookie('expires', val); break
+          }
+        })
+      }
+      
+      window.Logout = () => {
+        updateCookie('expires', new Date(0).toUTCString())
+        location.reload()
+      }
 
+      window.Login = () => {
+        console.log('logging in')
+      }
+
+      window.Register = () => {
+        console.log('registering...')
+      }
+
+      const UpdateLoginWidget = () => {
+        var loginEl = document.querySelector('#loginContainer')
+        if(passhash){
+          var logoutButton = document.createElement('button')
+          logoutButton.className = 'authButtons'
+          logoutButton.onclick = window.Logout
+          logoutButton.innerHTML = 'logout'
+          loginEl.appendChild(logoutButton)
+        }else{
+          var loginButton = document.createElement('button')
+          loginButton.className = 'authButtons'
+          loginButton.onclick = window.Login
+          loginButton.innerHTML = 'login'
+          loginEl.appendChild(loginButton)
+          var registerButton = document.createElement('button')
+          registerButton.className = 'authButtons'
+          registerButton.onclick = window.Register
+          registerButton.innerHTML = 'register'
+          loginEl.appendChild(registerButton)
+        }
+      }
+      
       const UpdateNavWidget = () => {
         document.querySelectorAll('.main')[0].scroll(0,0)
-        document.querySelector('#pageNo').innerHTML = CurPage()
+        document.querySelector('#pageNo').innerHTML = `page<br>${CurPage()} of ${totalPages+1}`
         
         document.querySelector('#page1Button').style.background = CurPage() > 1 ? 
                                                  '#4f8' : '#333'
@@ -286,7 +373,7 @@ $file = <<<'FILE'
                                                  '#032' : '#111'
       }
 
-      const deleteProject = (slug, name) => {
+      window.deleteProject = (slug, name) => {
         if(confirm('delete this project? -> ' + name)){
           let sendData = { slug, passhash }
           var url = URLbase + '/deleteProject.php'
@@ -335,7 +422,22 @@ $file = <<<'FILE'
       var html       = `<?=$pageData['data']?>`
       var totalPages = 0
       
+      const CheckLogin = () => {
+        var cookieParts = document.cookie.split('; ')
+        cookieParts.forEach(part => {
+          var pair = part.split('=')
+          switch(pair[0]){
+            case 'passhash': passhash = pair[1]; break
+            case 'username': username = pair[1]; break
+            case 'avatar': avatar = pair[1]; break
+          }
+        })
+        
+        UpdateLoginWidget()
+      }
+      
       const Refresh = () => {
+        if(CurPage() == 0) navToPage('+1')
         if(slug){
           var htmlObj =
             MarkdownToHTML.Convert(html, CurPage())
@@ -349,6 +451,7 @@ $file = <<<'FILE'
         UpdateNavWidget()
       }
       
+      CheckLogin()
       Refresh()
     </script>
   </body>

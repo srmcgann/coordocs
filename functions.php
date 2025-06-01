@@ -87,8 +87,9 @@
     $slug = '';
     $name = '';
     if(!!strpos($url, '?')){
-      $params = explode('&', parse_url($url)['query']);
-      if(sizeof($params) > 0){
+      $query = parse_url($url)['query'];
+      $params = explode('&', $query);
+      if(strpos($query, 's=') !== false){
         forEach($params as $param){
           $pair = explode('=', $param);
           $key = $pair[0];
