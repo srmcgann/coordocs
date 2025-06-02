@@ -42,7 +42,7 @@
   }
 
   function RenderProjectMenu($projects){
-    $ret = '';
+    $ret = '<div class="projectList">my projects<br>';
     if(sizeof($projects) > 0){
       forEach($projects as $project){
         $ret .= "<div class=\"projectMenuItem\">
@@ -58,69 +58,119 @@
                    ></button>
                  </div>";
       }
+    }else{
+      $ret .= '<span style="color: #888;"> you have no projects </span>';
     }
+    $ret .= '</div>';
     return $ret;
   }
   
-  function GetProjects(){
+  function Login($userName, $password, $passhash){
+    global $link;
+    $ret = false;
+    $sanUserName  = mysqli_real_escape_string($link, $userName);
+    $avatar       = '';
+    $userID       = '';
+    $sql = "SELECT * FROM users WHERE name LIKE BINARY \"$sanUserName\"";
+    $res = mysqli_query($link, $sql);
+    if(mysqli_num_rows($res)) {
+      $row = mysqli_fetch_assoc($res);
+      $avatar     = $row['avatar'];
+      $userID     = $row['id'];
+      if($passhash){
+        if($row['passhash'] == $passhash) $ret = true;
+      }else{
+        $passhash = $row['passhash'];
+        if(password_verify($password, $passhash)) $ret = true;
+      }
+    }
+    
+    return json_encode([
+      'success' => $ret,
+      'avatar' => $avatar,
+      'userID' => $userID,
+      'passhash' => $passhash,
+    ]);
+  }
+  
+  function GetProjects($userID, $passhash){
     global $link;
     $projects = [];
-    $sql = "SELECT * FROM projects";
-    $res = mysqli_query($link, $sql);
-    if(mysqli_num_rows($res)){
-      for($i = 0; $i < mysqli_num_rows($res); ++$i){
-        $row = mysqli_fetch_assoc($res);
-        $projects[] = [
-          'name' => $row['name'],
-          'slug' => $row['slug'],
-        ];
+    if(Authed($userID, $passhash)){
+      $sanUID      = intval($userID);
+      $sql = "SELECT * FROM projects WHERE $userID = $sanUID";
+      $res = mysqli_query($link, $sql);
+      if(mysqli_num_rows($res)){
+        for($i = 0; $i < mysqli_num_rows($res); ++$i){
+          $row = mysqli_fetch_assoc($res);
+          $projects[] = [
+            'name' => $row['name'],
+            'slug' => $row['slug'],
+          ];
+        }
       }
     }
     return $projects;
   }
-
-  function PageData() {
+  
+  function Authed($userID, $passhash){
     global $link;
-    $page = 1;
-    $url = fullCurrentURL();
-    $data = [];
-    $slug = '';
-    $name = '';
-    if(!!strpos($url, '?')){
-      $query = parse_url($url)['query'];
-      $params = explode('&', $query);
-      if(strpos($query, 's=') !== false){
-        forEach($params as $param){
-          $pair = explode('=', $param);
-          $key = $pair[0];
-          $val = $pair[1];
-          if($key == 'p') $page = $val;
-          if($key == 's'){
-            $slug = $val;
-            $val = mysqli_real_escape_string($link, $val);
-            $sql = "SELECT * FROM projects WHERE slug LIKE BINARY \"$val\"";
-            $res = mysqli_query($link, $sql);
-            if(mysqli_num_rows($res)){
-              $row = mysqli_fetch_assoc($res);
-              $data = str_replace('<','&lt;',
-                        str_replace('`', '\`', $row['data']));
-            }
-          }
+    $ret = false;
+    $sanUID      = intval($userID);
+    $sanPasshash = mysqli_real_escape_string($link, $passhash);
+    $sql = "SELECT * FROM users WHERE id = $sanUID AND
+                                  passhash LIKE BINARY \"$sanPasshash\" AND
+                                  enabled = 1";
+    $res = mysqli_query($link, $sql);
+    if(mysqli_num_rows($res)) $ret = true;
+    return $ret;
+  }
+
+  function PageData($slug, $page, $userID, $passhash) {
+    global $link;
+    if($slug){
+      if(Authed($userID, $passhash)){
+        $sanSlug = mysqli_real_escape_string($link, $slug);
+        $sanUID  = intval($userID);
+        $sql = "SELECT * FROM projects WHERE slug LIKE BINARY \"$sanSlug\" AND
+                                                   userID = $sanUID";
+        $res = mysqli_query($link, $sql);
+        if(mysqli_num_rows($res)){
+          $row = mysqli_fetch_assoc($res);
+          $data = str_replace('<','&lt;', $row['data']);
+          return [ 'name'    => $row['name'],
+                   'slug'    => $row['slug'],
+                   'userID'  => $userID,
+                   'success' => true,
+                   'error'   => '',
+                   'page'    => intval($page),
+                   'data'    => $data];
+        }else{
+          return [ 'name'    => "create or search projects",
+                   'slug'    => $slug,
+                   'userID'  => $userID,
+                   'success' => false,
+                   'error'   => "slug ($slug) not user\'s. user ok.",
+                   'page'    => intval($page),
+                   'data'    => RenderProjectMenu(GetProjects($userID, $passhash))];
         }
-        return [ 'name' => $row['name'],
-                 'slug' => $row['slug'],
-                 'page' => $page,
-                 'data' => $data];
+      }else{
+        return [ 'name'    => "create or search projects",
+                 'slug'    => $slug,
+                 'error'   => 'user auth not ok.',
+                 'userID'  => $userID,
+                 'success' => false,
+                 'page'    => intval($page),
+                 'data'    => RenderProjectMenu(GetProjects($userID, $passhash))];
       }
-      return [ 'name' => "create or search projects",
-               'slug' => $slug,
-               'page' => $page,
-               'data' => RenderProjectMenu(GetProjects())];
     }
-    return [ 'name' => "create or search projects",
-             'slug' => $slug,
-             'page' => $page,
-             'data' => RenderProjectMenu(GetProjects())];
+    return [ 'name'    => "create or search projects",
+             'slug'    => $slug,
+             'error'   => '',
+             'userID'  => $userID,
+             'success' => true,
+             'page'    => intval($page),
+             'data'    => RenderProjectMenu(GetProjects($userID, $passhash))];
  }
   
 ?>
