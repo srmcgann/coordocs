@@ -3,10 +3,7 @@ $file = <<<'FILE'
 <?
   require_once('functions.php');
   $input = json_decode(file_get_contents('php://input'));
-  $passhash = $input->{'passhash'};
-  if($passhash == 'samplePasshash'){
-    DeleteProject($input->{'slug'});
-  }
+  echo json_encode(DeleteProject($input->{'slug'}, $input->{'userID'}, $input->{'passhash'}));
 ?>
 
 FILE;

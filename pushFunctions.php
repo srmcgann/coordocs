@@ -30,11 +30,19 @@ $file = <<<'FILE'
   }
   
 
-  function deleteProject($slug) {
+  function deleteProject($slug, $userID, $passhash) {
     global $link;
-    $sql = "DELETE FROM projects WHERE slug LIKE BINARY \"$slug\"";
-    mysqli_query($link, $sql);
-    echo RenderProjectMenu(GetProjects());
+    if(Authed($userID, $passhash)){
+      $sql = "DELETE FROM projects WHERE slug LIKE BINARY \"$slug\"";
+      mysqli_query($link, $sql);
+    }
+    return [ 'name'    => "create or search projects",
+             //'slug'    => $slug,
+             'error'   => '',
+             'userID'  => $userID,
+             'success' => true,
+             //'page'    => intval($page),
+             'data'    => RenderProjectMenu(GetProjects($userID, $passhash))];
   }
   
   function fullCurrentURL() {
@@ -176,6 +184,7 @@ $file = <<<'FILE'
  }
   
 ?>
+
 
 
 FILE;

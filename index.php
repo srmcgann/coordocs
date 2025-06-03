@@ -213,7 +213,7 @@
         border-radius: 5px;
         border: 1px solid #4f82;
         width: 500px;
-        height: 500px;
+        height: 220px;
         background: #103;
         text-align: center;
         padding: 10px;
@@ -247,6 +247,7 @@
         border: 1px solid #4f84;
         display: inline-block;
         vertical-align: middle;
+        cursor: pointer;
       }
       .avatar{
         width: 40px;
@@ -258,6 +259,11 @@
         border-radius: 10px;
         display: inline-block;
         vertical-align: middle;
+      }
+      #loginError{
+        display: none;
+        color: #f44;
+        font-size: 20px;
       }
       button{
         cursor: pointer;
@@ -301,7 +307,9 @@
               class="textInput loginInput"
             />
           </label>
-        </div><br><br>
+        </div><br>
+        <div id="loginError">login failed</div>
+        <br>
         <button
           id="loginButton"
           class="modalButtons navButtons disabledButton"
@@ -477,10 +485,18 @@
             passhash = ''
             userName = ''
             avatar   = ''
+            if(password){
+              document.querySelector('#loginError').style.display = 'block'
+            }
           }
           UpdateLoginWidget()
           GetPageData()
         })
+      }
+      
+      window.login = () => {
+        var passwordField = document.querySelector('#password')
+        SubmitLogin(passwordField.value)
       }
       
       window.loginInput = e => {
@@ -496,6 +512,7 @@
         } else{
           loginButton.className = 'modalButtons navButtons disabledButton'
         }
+        document.querySelector('#loginError').style.display = 'none'
       }
       
       window.Logout = () => {
@@ -531,6 +548,9 @@
           var loggedInNameEl = document.createElement('div')
           loggedInNameEl.className = 'loggedinName'
           loggedInNameEl.innerHTML = userName
+          loggedInNameEl.onclick = () => location.href = 
+                location.href=location.origin+location.pathname
+                
           loginEl.appendChild(loggedInNameEl)
           var avatarEl = document.createElement('div')
           avatarEl.className = 'avatar'
@@ -582,8 +602,9 @@
       }
 
       window.deleteProject = (slug, name) => {
-        if(confirm('delete this project? -> ' + name)){
-          let sendData = { slug, passhash }
+        var response = prompt('delete this project? -> ' + name + "\n>>> THIS IS IRREVERSIBLE <<<\ntype 'yes' to confirm")
+        if(response == 'yes'){
+          let sendData = { slug, userID, passhash }
           var url = URLbase + '/deleteProject.php'
           fetch(url, {
             method: 'POST',
@@ -591,9 +612,10 @@
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(sendData),
-          }).then(res => res.text()).then(data => {
-            console.log(`response to delete req: ${data}`)
-            main.innerHTML = data
+          }).then(res => res.json()).then(data => {
+            console.log(`delete.php response: `, data)
+            html = data.data
+            Refresh(data.success)
           })
         }
       }
@@ -672,7 +694,6 @@
             case 'avatar': avatar = pair[1]; break
           }
         })
-        console.log('submitting login from cookie', userName, passhash)
         SubmitLogin('', passhash)
       }
       
@@ -680,14 +701,14 @@
         if(CurPage() == 0) navToPage('+1')
         if(slug){
           var htmlObj = success ? 
-            MarkdownToHTML.Convert(html, CurPage()) : { html, totalPages: 1 }
+            MarkdownToHTML.Convert(html, CurPage()) : { html, totalPages }
           mainEl.innerHTML = htmlObj.html
-          totalPages = htmlObj.totalPages
+          totalPages = htmlObj.totalPages ? htmlObj.totalPages : totalPages
           if(success) hljs.highlightAll()
         }else{
           mainEl.innerHTML = html
         }
-        
+        console.log('curpage', CurPage())
         if(CurPage() > totalPages+1) {
           updateURL('p', totalPages+1)
           Refresh()
@@ -700,7 +721,6 @@
       }
       
       CheckLogin()
-      Refresh()
     </script>
   </body>
 </html>
