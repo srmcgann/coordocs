@@ -285,7 +285,7 @@
         <button class="closeButton" title="close" onclick="closePrompts()">
           X
         </button>
-        <br>login / register<br><br><br>
+        <br>login<br><br><br>
         <div class="loginSection">
           <label for="userName" class="loginLabel">
             user name
@@ -500,6 +500,9 @@
       }
       
       window.loginInput = e => {
+        if(e.keyCode == 27){
+          closePrompts()
+        }
         var loginButton = document.querySelector('#loginButton')
         var userNameField = document.querySelector('#userName')
         var passwordField = document.querySelector('#password')
