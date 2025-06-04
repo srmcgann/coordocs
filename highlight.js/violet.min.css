@@ -38,6 +38,9 @@ pre code.hljs {
   display: block;
   overflow-x: auto;
   padding: 1em;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1em;
 }
 
 code.hljs {
@@ -178,3 +181,4 @@ code.hljs {
 .hljs-meta-keyword {
   font-weight: bold;
 }
+

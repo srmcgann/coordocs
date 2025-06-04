@@ -1,14 +1,17 @@
 <!--
   to do
   ✔ working login & project <-> user assoc
+  ✔ meta / social data
+  ✔ create-project form
+  ✔ markdown editor tool w/ toggle
+  ✔ docs page for docs
+  ✔ page break syntax for markdown
+  * delete button on doc itself, plus list page
   * registration
-  * meta / social data
   * search function
-  * create-project form
-  * page break syntax for markdown
-  * docs page for docs
+  * user profile settings screen, w/ avatar, password change, etc.
   * copy button @ all code blocks
-  * markdown editor tool w/ toggle
+  * theme selector
 -->
 <?php
   require_once('functions.php');
@@ -31,7 +34,7 @@
         margin: 0;
         background: #080810;
         color: #edc;
-        font-family: verdana;
+        font-family: monospace, verdana;
         font-size: 16px;
         overflow: hidden;
       }
@@ -73,10 +76,9 @@
         padding-top: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        background: #123;
-        color: #cfe;
-        font-family: verdana;
-        background: #080810;
+        background: #222;
+        color: #ffd;
+        font-family: monospace, verdana;
       }
       .main img{
         display: block;
@@ -116,11 +118,11 @@
         text-align: left;
       }
       .enabledButton{
-        background: #4f8;
+        background: #4f8!important;
         color: #021;
       }
       .disabledButton{
-        background: #333;
+        background: #333!important;
         color: #111;
       }
       .navButtons{
@@ -167,7 +169,7 @@
         border-radius: 2px;
         margin: 5px;
         font-size: 20px;
-        font-family: verdana;
+        font-family: monospace, verdana;
         padding: 3px;
         background: #208;
         color: #fff;
@@ -189,6 +191,8 @@
       }
       .loginInput{
         float: right;
+        text-align: left!important;
+        min-width: 300px;
       }
       .textInput{
         font-size: 16px;
@@ -213,12 +217,14 @@
         color: #000;
         min-width: 75px;
         border: none;
-        font-family: verdana;
+        font-family: monospace, verdana;
         font-size: 16px;
         margin: 5px;
       }
       .projectList{
         text-align: center;
+        overflow-y: auto;
+        height: calc(100vh - 20px);
       }
       a{
         color: #f08;
@@ -275,19 +281,18 @@
         outline: none;
       }
       #textEditor{
+        resize: none;
         text-align: left;
         border: none;
         padding: 0;
         margin: 0;
         word-break: break-word;
-        background: #123;
-        width: 100%;
+        background: #333;
+        width: calc(100vw - 20px);
         height: calc(100vh - 140px);
         padding: 10px;
         display: block; 
         color: #ffe;
-        font-family: courier new;
-        background: #080810;
       }
       .loggedinName{
         height: 20px;
@@ -416,7 +421,7 @@
         <button class="closeButton" title="close" onclick="closePrompts()">
           X
         </button>
-        <br>login<br><br><br>
+        <br>login<br><br>
         <div class="loginSection">
           <label for="userName" class="loginLabel">
             user name
@@ -439,7 +444,7 @@
             />
           </label>
         </div><br>
-        <div id="loginError">login failed</div>
+        <div id="loginError">bad username or password</div>
         <br>
         <button
           id="loginButton"
@@ -537,7 +542,7 @@
         >new</button>
       </div>
       <div class="toolbarComponent" style="display: none;">
-        <label class="checkmarkContainer" title="toggle public visibility">
+        <label class="checkmarkContainer" title="toggle link visibility">
           <span id="privateCheckLabel">private</span>
           <input
             id="privacyCheck"
@@ -652,13 +657,12 @@
             UpdateCookie()
             closePrompts()
           } else {
-            console.log('login failed', data)
             loggedin = false
             passhash = ''
             userName = ''
             avatar   = ''
             if(password){
-              document.querySelector('#loginError').style.display = 'block'
+              document.querySelector('#loginError').style.display = 'inline-block'
             }
           }
           UpdateLoginWidget()
@@ -777,7 +781,7 @@
         document.querySelector('#pageLastButton').style.color = CurPage() < totalPages + 1 ? 
                                                  '#032' : '#111'
                                                  
-        document.querySelector('#pageNo').parentNode.style.display = totalPages > 1 ? 'inline-block' : 'none'
+        document.querySelector('#pageNo').parentNode.style.display = totalPages > 0 ? 'inline-block' : 'none'
       }
 
       window.deleteProject = (slug, name) => {
@@ -802,9 +806,15 @@
       window.navToPage = pg => {
         var tgt
         switch(pg){
-          case '1': tgt = 1; break
+          case '1':
+            if(CurPage() == 1) return
+            tgt = 1
+          break
           case '+1': tgt = Math.min(totalPages + 1, CurPage() + 1); break
-          case '-1': tgt = Math.max(1, CurPage() - 1); break
+          case '-1':
+            if(CurPage() == 1) return
+            tgt = Math.max(1, CurPage() - 1);
+          break
           case 'last': tgt = totalPages + 1; break
         }
         updateURL('p', tgt, false)
@@ -906,6 +916,7 @@
           viewMode = mode
           DisplayContent()
         }
+        if(viewMode == 'view') UpdateNavWidget()
       }
       
       window.createDoc = () => {
@@ -934,6 +945,7 @@
           Refresh(data.success)
           window.toggleEditMode(viewMode = 'edit', true)
           updateURL('s', slug)
+          updateURL('p', 1)
         })
         
       }
@@ -1019,7 +1031,7 @@
             textEditor.focus()
             textEditor.oninput = () => HandleTextInput(textEditor)
             mainEl.style.padding = '0'
-            mainEl.style.maxHeight = 'calc(100vh - 115px)';
+            mainEl.style.maxHeight = 'calc(100vh - 15px)';
             mainEl.innerHTML = ''
             mainEl.appendChild(textEditor)
             document.querySelector('#pageNo').parentNode.style.display = 'none'
@@ -1027,11 +1039,13 @@
             var teEl = document.querySelector('#textEditor')
             if(teEl) teEl.remove()
             var htmlObj = success ? 
-              MarkdownToHTML.Convert(html, CurPage()) : { html, totalPages }
+              MarkdownToHTML.Convert(html, CurPage(),
+                document.querySelector('#pageNo').parentNode, mainEl) :
+                { html, totalPages }
             mainEl.innerHTML = htmlObj.html
             mainEl.style.padding = '10px'
-            mainEl.style.maxHeight = 'calc(100vh - 315px)';
-            mainEl.style.paddingBottom = '200px'
+            mainEl.style.maxHeight = 'calc(100vh - 215px)';
+            mainEl.style.paddingBottom = '100px'
             totalPages = htmlObj.totalPages ? htmlObj.totalPages : totalPages
             if(success) hljs.highlightAll()
             document.querySelector('#pageNo').parentNode.style.display = totalPages > 1 ? 'inline-block' : 'none'
@@ -1078,3 +1092,4 @@
     </script>
   </body>
 </html>
+
