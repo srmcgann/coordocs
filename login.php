@@ -4,5 +4,5 @@
   $userName = $input->{'userName'};
   $password = $input->{'password'};
   $passhash = $input->{'passhash'};
-  echo Login($userName, $password, $passhash);
+  echo login($userName, $password, $passhash);
 ?>

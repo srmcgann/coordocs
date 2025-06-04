@@ -2,21 +2,30 @@
 $file = <<<'FILE'
 <!--
   to do
+  ✔ working login & project <-> user assoc
+  * registration
+  * meta / social data
   * search function
-  * create project form
-  * working login/reg & project <-> user assoc
+  * create-project form
+  * page break syntax for markdown
   * docs page for docs
   * copy button @ all code blocks
   * markdown editor tool w/ toggle
 -->
 <?php
-  //require_once('functions.php');
-  //$pageData = PageData();
+  require_once('functions.php');
+  $pageMetaData = pageMetaData();
+  if($pageMetaData['slug']){
+    $pg = intval($pageMetaData['page']) > 1 ? "  -  page {$pageMetaData['page']}" : '';
+    $pageTitle = "{$pageMetaData['name']}  -  {$pageMetaData['userName']}$pg  -  created {$pageMetaData['created']}  -  updated {$pageMetaData['updated']}";
+  }else{
+    $pageTitle = "{$pageMetaData['name']} - coordocs, better docs!";
+  }
 ?>
 <!DOCTYPE html>
 <html>
   <head>
-    <title>coordocs - better docs</title>
+    <title><?=$pageTitle?></title>
     <style>
       body, html{
         width: 100vw;
@@ -27,6 +36,12 @@ $file = <<<'FILE'
         font-family: verdana;
         font-size: 16px;
         overflow: hidden;
+      }
+      h1, h2{
+        border-bottom: 1px solid #fff4;
+      }
+      li{
+        line-height: 1em;
       }
       .header{
         position: fixed;
@@ -55,32 +70,43 @@ $file = <<<'FILE'
       }
       .main{
         text-align: left;
-        border: 1px solid #fff2;
+        border: none;
         padding: 10px;
+        padding-top: 0;
         overflow-y: auto;
         overflow-x: hidden;
         background: #123;
-        max-height: calc(100vh - 98px);
         color: #cfe;
         font-family: verdana;
         background: #080810;
       }
       .main img{
         display: block;
-        border: 1px solid #fff4;
+        /*border: 1px solid #fff4;*/
         border-radius: 5px;
       }
       .toolbarComponent{
-        border-radius: 5px;
+        border-radius: 24px;
         background: #002;
         height: 35px;
-        border: 1px solid #fff1;
+        border: 1px solid #82f4;
         display: inline-block;
         vertical-align: top;
         position: relative;
         text-align: center;
         padding-left: 10px;
         padding-right: 10px;
+        margin: 2px;
+        margin-top: 0;
+      }
+      .icon{
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        vertical-align: middle;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center center;
       }
       .toolbar{
         top: 36px;
@@ -101,6 +127,7 @@ $file = <<<'FILE'
       }
       .navButtons{
         border-radius: 10px;
+        background: #222;
         width: 50px;
         height: 26px;
         margin: 5px;
@@ -134,6 +161,7 @@ $file = <<<'FILE'
         background: #333;
         display: inline-block;
         margin: 10px;
+        vertical-align: middle;
       }
       .projectButton{
         width: 200px;
@@ -146,6 +174,7 @@ $file = <<<'FILE'
         background: #208;
         color: #fff;
         text-shadow: 2px 2px 3px #000;
+        min-height: 32px;
       }
       .deleteButton{
         background-image: url(delete.png);
@@ -165,11 +194,15 @@ $file = <<<'FILE'
       }
       .textInput{
         font-size: 16px;
+        text-align: center;
         background: #000;
         color: #4f8;
         border-radius: 5px;
         border: 1px solid #fff1;
-        width: 300px;
+        padding-left: 5px;
+        padding-right: 5px;
+        vertical-align: middle;
+        display: inline-block;
       }
       blockquote{
         border-left: 5px solid #888;
@@ -191,6 +224,7 @@ $file = <<<'FILE'
       }
       a{
         color: #f08;
+        display: inline-block;
       }
       a:visited{
         color: #804;
@@ -223,6 +257,7 @@ $file = <<<'FILE'
       }
       .loginLabel{
         color: #888;
+        font-size: 16px;
       }
       .loginSection{
         width: 400px;
@@ -237,6 +272,24 @@ $file = <<<'FILE'
         background: #f88;
         color: #400;
         float: right;
+      }
+      #textEditor:focus{
+        outline: none;
+      }
+      #textEditor{
+        text-align: left;
+        border: none;
+        padding: 0;
+        margin: 0;
+        word-break: break-word;
+        background: #123;
+        width: 100%;
+        height: calc(100vh - 140px);
+        padding: 10px;
+        display: block; 
+        color: #ffe;
+        font-family: courier new;
+        background: #080810;
       }
       .loggedinName{
         height: 20px;
@@ -262,6 +315,18 @@ $file = <<<'FILE'
         display: inline-block;
         vertical-align: middle;
       }
+      #newDocButton{
+        background: #fa4;
+        color: #210;
+      }
+      .vSpc{
+        width 2px;
+        height: 36px;
+        display: inline-block;
+        background: #82f4;
+        vertical-align: middle;
+        width: 2px;
+      }
       #loginError{
         display: none;
         color: #f44;
@@ -277,6 +342,72 @@ $file = <<<'FILE'
         min-width: 75px;
         font-size: 16px;
       }
+
+      .checkmarkContainer {
+        display: inline-block;
+        position: relative;
+        padding-left: 35px;
+        cursor: pointer;
+        vertical-align: middle;
+        line-height: 24px;
+        font-size: 22px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        margin-top: -2px;
+      }
+
+      .checkmarkContainer input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+      }
+
+      .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 25px;
+        width: 25px;
+        background-color: #021;
+        border-radius: 5px;
+        border: 1px solid #042;
+      }
+
+      .checkmarkContainer:hover input ~ .checkmark {
+        background-color: #444;
+      }
+
+      .checkmarkContainer input:checked ~ .checkmark {
+        background-color: #200;
+        border: 1px solid #400;
+      }
+
+      .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+      }
+
+      .checkmarkContainer input:checked ~ .checkmark:after {
+        display: block;
+      }
+
+      .checkmarkContainer .checkmark:after {
+        left: 9px;
+        top: 5px;
+        width: 5px;
+        height: 10px;
+        border: solid #f00;
+        border-width: 0 3px 3px 0;
+        -webkit-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        transform: rotate(45deg);
+      }
+      
     </style>
     <link rel="stylesheet" href="./highlight.js/violet.min.css">
     <script src="./highlight.js/highlight.min.js"></script>
@@ -335,10 +466,15 @@ $file = <<<'FILE'
     </div>
     <div class="toolbar">
       <div class="toolbarComponent">
-        <span
-          id="screenName"
-          class="textInput"
-        ></span>
+        <label for="screenName">
+          <span class="loginLabel">this doc</span>
+          <input
+            oninput="updateProjectName(this.value)"
+            id="screenName"
+            class="textInput"
+            placeholder="give this doc a name"
+          ></input>
+        </label>
       </div>
       <div class="toolbarComponent">
         <button
@@ -368,14 +504,50 @@ $file = <<<'FILE'
         >&gt;|</button>
       </div>
       <div class="toolbarComponent">
-        <input
-          type="text"
-          class="textInput"
-          id="searchField"
-          placeholder="search for something"
-          spellcheck="false"
-          onkeyup="searchMaybe(event)"
-        >
+        <label for="searchField">
+          <div class="icon" style="background-image: url(search.png);"></div>
+          <input
+            type="text"
+            class="textInput"
+            id="searchField"
+            placeholder="search for something"
+            spellcheck="false"
+            onkeyup="searchMaybe(event)"
+          />
+        </label>
+      </div>
+      <div class="toolbarComponent" style="display: none;">
+        <!-- <span class="loginLabel">doc</span> -->
+        <button
+          class="navButtons"
+          id="editDocButton"
+          title="edit doc"
+          onclick="toggleEditMode('edit')"
+        >edit</button>
+        <button
+          class="navButtons"
+          id="viewDocButton"
+          title="view contents as others will see it"
+          onclick="toggleEditMode('view')"
+        >view</button>
+        <div class="vSpc"></div>
+        <button
+          class="navButtons newDocButton"
+          id="newDocButton"
+          title="create a new doc"
+          onclick="createDoc()"
+        >new</button>
+      </div>
+      <div class="toolbarComponent" style="display: none;">
+        <label class="checkmarkContainer" title="toggle public visibility">
+          <span id="privateCheckLabel">private</span>
+          <input
+            id="privacyCheck"
+            type="checkbox"
+            oninput="togglePrivate(this)"
+          />
+          <span class="checkmark"></span>
+        </label>
       </div>
       <div class="toolbarComponent">
         <div id="loginContainer"></div>
@@ -553,6 +725,7 @@ $file = <<<'FILE'
           var loggedInNameEl = document.createElement('div')
           loggedInNameEl.className = 'loggedinName'
           loggedInNameEl.innerHTML = userName
+          loggedInNameEl.title = 'go to my projects'
           loggedInNameEl.onclick = () => location.href = 
                 location.href=location.origin+location.pathname
                 
@@ -562,6 +735,7 @@ $file = <<<'FILE'
           avatarEl.style.backgroundImage = `url(${avatar})`
           loginEl.appendChild(avatarEl)
           var logoutButton = document.createElement('button')
+          logoutButton.title = 'logout'
           logoutButton.className = 'authButtons'
           logoutButton.onclick = window.Logout
           logoutButton.innerHTML = 'logout'
@@ -604,6 +778,8 @@ $file = <<<'FILE'
                                                  '#4f8' : '#333'
         document.querySelector('#pageLastButton').style.color = CurPage() < totalPages + 1 ? 
                                                  '#032' : '#111'
+                                                 
+        document.querySelector('#pageNo').parentNode.style.display = totalPages > 1 ? 'inline-block' : 'none'
       }
 
       window.deleteProject = (slug, name) => {
@@ -664,11 +840,13 @@ $file = <<<'FILE'
         return ret
       }
 
-      var mainEl     = document.querySelectorAll('.main')[0]
-      var slug       = GetURLParam('s')
-      var page       = GetURLParam('p')
-      var html       = ''
-      var totalPages = 0
+      var mainEl          = document.querySelectorAll('.main')[0]
+      var slug            = GetURLParam('s')
+      var page            = GetURLParam('p')
+      var viewMode        = 'view'
+      var html            = ''
+      var curPageName = ''
+      var totalPages      = 0
       
       const GetPageData = () => {
         let sendData = { passhash, userID, slug, page }
@@ -681,11 +859,123 @@ $file = <<<'FILE'
           },
           body: JSON.stringify(sendData),
         }).then(res => res.json()).then(data => {
-          console.log(`getPageData.php response: `, data)
           if(!data.success) updateURL('s', '')
           html = data.data
+          document.querySelector('#screenName').value = data.name
+          curPageName = data.name
+
+          document.querySelector('#screenName').value = data.name
+          curPageName = data.name
+          
+          var checkbox = document.querySelector('#privacyCheck')
+          checkbox.checked = !!(+data.private)
+          document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
+
           Refresh(data.success)
         })
+      }
+      
+      
+      window.toggleEditMode = (mode, forceReload=false) => {
+        if(slug){
+          switch(mode){
+            case 'edit':
+              document.querySelector('#editDocButton').style.background = '#2f4'
+              document.querySelector('#viewDocButton').style.background = '#252'
+              document.querySelector('#editDocButton').style.color = '#021'
+              document.querySelector('#viewDocButton').style.color = '#122'
+              document.querySelector('#editDocButton').style.boxShadow = '0 0 3px #40f'
+              document.querySelector('#viewDocButton').style.boxShadow = 'none'
+            break
+            case 'view':
+              document.querySelector('#editDocButton').style.background = '#252'
+              document.querySelector('#viewDocButton').style.background = '#2f4'
+              document.querySelector('#editDocButton').style.color = '#122'
+              document.querySelector('#viewDocButton').style.color = '#021'
+              document.querySelector('#editDocButton').style.boxShadow = 'none'
+              document.querySelector('#viewDocButton').style.boxShadow = '0 0 3px #40f'
+            break
+          }
+        }else{
+          document.querySelector('#editDocButton').style.background = '#333'
+          document.querySelector('#viewDocButton').style.background = '#333'
+          document.querySelector('#editDocButton').style.color = '#111'
+          document.querySelector('#viewDocButton').style.color = '#111'
+          document.querySelector('#editDocButton').style.boxShadow = 'none'
+          document.querySelector('#viewDocButton').style.boxShadow = 'none'
+        }
+        if(viewMode != mode || forceReload){
+          viewMode = mode
+          DisplayContent()
+        }
+      }
+      
+      window.createDoc = () => {
+        let sendData = { userID, passhash }
+        var url = URLbase + '/createProject.php'
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sendData),
+        }).then(res => res.json()).then(data => {
+          if(!data.success) updateURL('s', '')
+          
+          console.log(data)
+          slug = data.slug
+          html = data.data
+
+          document.querySelector('#screenName').value = data.name
+          curPageName = data.name
+          
+          var checkbox = document.querySelector('#privacyCheck')
+          checkbox.checked = !!(+data.private)
+          document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
+          
+          Refresh(data.success)
+          window.toggleEditMode(viewMode = 'edit', true)
+          updateURL('s', slug)
+        })
+        
+      }
+      
+      window.togglePrivate = checkbox => {
+        let sendData = { slug, userID, passhash, private: checkbox.checked }
+        var url = URLbase + '/updatePrivacy.php'
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sendData),
+        }).then(res => res.json()).then(data => {
+          if(!data.success) checkbox.checked = !checkbox.checked
+          document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
+        })
+      }
+      
+      window.updateProjectName = name => {
+        if(slug){
+          let sendData = { slug, userID, passhash, name }
+          var url = URLbase + '/updateProjectName.php'
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData),
+          }).then(res => res.json()).then(data => {
+            if(data.success){
+              curPageName = name
+              document.title = document.title.split(' - ').map((v, i)=>i?v:name).join(' - ')
+            }else{
+              document.querySelector('#screenName').value = curPageName
+            }
+          })
+        }else{
+          document.querySelector('#screenName').value = curPageName
+        }
       }
       
       const CheckLogin = () => {
@@ -702,17 +992,77 @@ $file = <<<'FILE'
         SubmitLogin('', passhash)
       }
       
-      const Refresh = (success = true) => {
-        if(CurPage() == 0) navToPage('+1')
+      const HandleTextInput = textEditor => {
+        
+        html = textEditor.value
+        
+        let sendData = { slug, userID, passhash, data: html }
+        var url = URLbase + '/updateProjectData.php'
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sendData),
+        }).then(res => res.json()).then(data => {
+          if(!data.success) console.log(`error`, data.error)
+        })
+      }
+      
+      const DisplayContent = (success=true) => {
         if(slug){
-          var htmlObj = success ? 
-            MarkdownToHTML.Convert(html, CurPage()) : { html, totalPages }
-          mainEl.innerHTML = htmlObj.html
-          totalPages = htmlObj.totalPages ? htmlObj.totalPages : totalPages
-          if(success) hljs.highlightAll()
+          if(viewMode == 'edit'){
+            var textEditor = document.createElement('textarea')
+            textEditor.innerHTML = html
+            textEditor.style.fontSize = '16px'
+            textEditor.id = 'textEditor'
+            textEditor.tabIndex = 0
+            textEditor.spellcheck = false
+            textEditor.focus()
+            textEditor.oninput = () => HandleTextInput(textEditor)
+            mainEl.style.padding = '0'
+            mainEl.style.maxHeight = 'calc(100vh - 115px)';
+            mainEl.innerHTML = ''
+            mainEl.appendChild(textEditor)
+            document.querySelector('#pageNo').parentNode.style.display = 'none'
+          }else{
+            var teEl = document.querySelector('#textEditor')
+            if(teEl) teEl.remove()
+            var htmlObj = success ? 
+              MarkdownToHTML.Convert(html, CurPage()) : { html, totalPages }
+            mainEl.innerHTML = htmlObj.html
+            mainEl.style.padding = '10px'
+            mainEl.style.maxHeight = 'calc(100vh - 315px)';
+            mainEl.style.paddingBottom = '200px'
+            totalPages = htmlObj.totalPages ? htmlObj.totalPages : totalPages
+            if(success) hljs.highlightAll()
+            document.querySelector('#pageNo').parentNode.style.display = totalPages > 1 ? 'inline-block' : 'none'
+          }
         }else{
           mainEl.innerHTML = html
         }
+      }
+      
+      const Refresh = (success = true) => {
+
+        if(slug) {
+          document.querySelector('#screenName').style.color = '#4f8'
+          if(loggedin){
+            document.querySelector('#newDocButton').parentNode.style.display = 'inline-block'
+            document.querySelector('.checkmarkContainer').parentNode.style.display = 'inline-block'
+          }
+        }else{
+          document.querySelector('#screenName').style.color = '#aaa'
+          document.querySelector('.checkmarkContainer').parentNode.style.display = 'none'
+          if(loggedin){
+            document.querySelector('#newDocButton').parentNode.style.display = 'inline-block'
+          }else{
+            document.querySelector('#newDocButton').parentNode.style.display = 'none'
+          }
+        }
+        
+        if(CurPage() == 0) navToPage('+1')
+        DisplayContent(success)
         console.log('curpage', CurPage())
         if(CurPage() > totalPages+1) {
           updateURL('p', totalPages+1)
@@ -726,9 +1076,11 @@ $file = <<<'FILE'
       }
       
       CheckLogin()
+      window.toggleEditMode(viewMode)
     </script>
   </body>
 </html>
+
 
 
 FILE;

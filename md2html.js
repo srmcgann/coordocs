@@ -2,7 +2,7 @@
 // Scott McGann - whitehotrobot@gmail.com
 // all rights reserved - ©2025
 
-const MaxLinesPerPage = 20
+const MaxLinesPerPage = 20000
 
 const Convert = (src, curPage=0) => {
   console.log('curPage: ', curPage)
@@ -31,8 +31,10 @@ const Convert = (src, curPage=0) => {
         inCodeBlock = true
       }else{
         var fontSize = "1em"
-        var tagName = '<div>'
-        var closingTag = '</div>'
+        //var tagName = '<div>'
+        //var closingTag = '</div>'
+        var tagName = ''
+        var closingTag = ''
         var skipShift = false
         var isLi = false
         var tok1 = line.split(' ')
@@ -61,11 +63,13 @@ const Convert = (src, curPage=0) => {
           line = tok1.join(' ')
           if(isLi) line = `<li>${line}</li>`
         }
-        var rLine = tagName
+        //var rLine = tagName
 
         // images
         if(line.split('![').length > 1 && line.split(']').length > 1 &&
            line.split('](').length > 1 && line.split(')').length > 1){
+          tagName = ''
+          closingTag = ''
           var links = []
           line.split('![').forEach((p1, idx) =>{
             if(idx){
@@ -82,8 +86,8 @@ const Convert = (src, curPage=0) => {
             if(tog) s += chr
             if(!tog && chr == ')') {
               s+=`<img title="${links[ct].title}"
+                   style="max-width: 400px; margin: 10px;"
                    src="${links[ct].url}"
-                   target="_blank"
                    alt="${links[ct].title}"/>`
               tog = true
               ct++
@@ -95,6 +99,8 @@ const Convert = (src, curPage=0) => {
         // links
         if(line.split('[').length > 1 && line.split(']').length > 1 &&
            line.split('](').length > 1 && line.split(')').length > 1){
+          tagName = ''
+          closingTag = ''
           var links = []
           line.split('[').forEach((p1, idx) =>{
             if(idx){
@@ -110,11 +116,7 @@ const Convert = (src, curPage=0) => {
             if(chr == '[') tog =false
             if(tog) s += chr
             if(!tog && chr == ')') {
-              s+=`<a
-                  href="${links[ct].url}"
-                  title="${links[ct].title}"
-                  target="_blank"
-                  >${links[ct].title}</a>`
+              s+=`<a "target="_blank" href="${links[ct].url}">${links[ct].title}</a>`
               tog = true
               ct++
             }
@@ -124,6 +126,8 @@ const Convert = (src, curPage=0) => {
 
         // bold text
         if(line.split('**').length > 1 && line.split('**').length%2==1){
+          tagName = ''
+          closingTag = ''
           var v = ''
           var l = line.split('**')
           l.forEach((part, idx) => {
@@ -134,6 +138,8 @@ const Convert = (src, curPage=0) => {
 
         // italic text
         if(line.split('*').length > 1 && line.split('*').length%2==1){
+          tagName = ''
+          closingTag = ''
           var v = ''
           var l = line.split('*')
           l.forEach((part, idx) => {
@@ -144,6 +150,8 @@ const Convert = (src, curPage=0) => {
 
         // code shorthand (``)
         if(line.split('``').length > 1 && line.split('``').length%2==1){
+          tagName = ''
+          closingTag = ''
           var v = ''
           var l = line.split('``')
           l.forEach((part, idx) => {
@@ -156,7 +164,7 @@ const Convert = (src, curPage=0) => {
           line = v
         }
         
-        rLine += line
+        var rLine = tagName + line
         rLine += closingTag
         ret += pageFilter() ? rLine : ''
         linePos++
