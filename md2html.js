@@ -5,13 +5,14 @@
 const MaxLinesPerPage = 1e5;
 
 const Convert = (src, curPage=0, navEl = '', contEl = '') => {
-  console.log('curPage: ', curPage)
   var linePos = 0, pageCt = 0;
   var wSrc = src.replaceAll("\r\n", "\n")
   var wSrc = wSrc.replaceAll("<br>", "\n")
   var ret = '', inCodeBlock = false, pageBreakRequested = false
   
   const pageFilter = () => curPage == pageCt+1
+  const totalPages = () => src.split("&lt;pagebreak").length
+  
   src.split("\n").forEach(line => {
     if(inCodeBlock){
       if(line.substr(0, 3) == '```'){
@@ -25,20 +26,38 @@ const Convert = (src, curPage=0, navEl = '', contEl = '') => {
       if(pageBreakRequested){
         pageBreakRequested = false
         pageCt++
+        if(pageFilter()){
+          if(navEl && contEl) {
+            setTimeout(()=>{
+              if(document.querySelectorAll('#md2html_nav').length == 0){
+                var apEl = navEl.cloneNode(true)
+                apEl.id = "md2html_nav"
+                apEl.style.float = 'none'
+                apEl.style.left = '50%'
+                apEl.style.transform = 'translate(-50%)'
+                contEl.innerHTML += '<br><br><br><br><br><center><span style="color: #888;">'+(totalPages() == curPage ? 'end of document' : 'continued on the next page...')+'</span><br><br><br>'
+                contEl.appendChild(apEl)
+              }
+            }, 0)
+          }
+        }
       }
       if(line.substr(0, 10) == '<pagebreak'){
         tagName = ''
         closingTag = ''
         pageBreakRequested = true
-        if(pageFilter()){
-          ret += '<br><br><br><center><span style="color: #888;">continued on the next page...</span><br><br>'
+        if(curPage == 1 && pageFilter()){
+          ret += '<br><br><br><br><br><center><span style="color: #888;">continued on the next page...</span><br><br><br>'
           if(navEl && contEl) {
             setTimeout(()=>{
-              var apEl = navEl.cloneNode(true)
-              apEl.style.float = 'none'
-              apEl.style.left = '50%'
-              apEl.style.transform = 'translate(-50%)'
-              contEl.appendChild(apEl)
+              if(document.querySelectorAll('#md2html_nav').length == 0){
+                var apEl = navEl.cloneNode(true)
+                apEl.id = "md2html_nav"
+                apEl.style.float = 'none'
+                apEl.style.left = '50%'
+                apEl.style.transform = 'translate(-50%)'
+                contEl.appendChild(apEl)
+              }
             }, 0)
           }
           ret += '</center>'
@@ -195,13 +214,14 @@ const Convert = (src, curPage=0, navEl = '', contEl = '') => {
   })
   return {
     html: ret, 
-    totalPages: pageCt
+    totalPages: totalPages()
   }
 }
 
 export {
   Convert
 }
+
 
 
 

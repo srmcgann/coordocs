@@ -84,22 +84,109 @@
               $ret['slug'] = $pair[1];
               $sql = "SELECT * FROM projects WHERE slug LIKE BINARY \"{$ret['slug']}\"";
               $res = mysqli_query($link, $sql);
-              $row = mysqli_fetch_assoc($res);
-              $ret['name'] = $row['name'];
-              $ret['created'] = prettyDate($row['created']);
-              $ret['updated'] = prettyDate($row['updated']);
-              $userID = $row['userID'];
-              
-              $sql = "SELECT name FROM users WHERE id = $userID";
-              $res = mysqli_query($link, $sql);
-              $row = mysqli_fetch_assoc($res);
-              $ret['userName'] = $row['name'];
+              if(mysqli_num_rows($res)){
+                $row = mysqli_fetch_assoc($res);
+                $ret['name'] = $row['name'];
+                $ret['created'] = prettyDate($row['created']);
+                $ret['updated'] = prettyDate($row['updated']);
+                $userID = $row['userID'];
+                
+                $sql = "SELECT name FROM users WHERE id = $userID";
+                $res = mysqli_query($link, $sql);
+                $row = mysqli_fetch_assoc($res);
+                $ret['userName'] = $row['name'];
+              }else{
+                $ret['name'] = '';
+                $ret['created'] = '';
+                $ret['updated'] = '';
+                $userID = '';
+                $ret['userName'] = '';
+              }
               break;
           }
         }
       }
     }
     return $ret;
+  }
+  
+  function search($search, $userID, $passhash){
+    global $link;
+    $success = false;
+    $memo = [];
+    $sanUID = intval($userID);
+    $sql = "SELECT * FROM projects WHERE userID = $sanUID OR private = 0";
+    $res = mysqli_query($link, $sql);
+    $hits = [];
+    $lsearch = strtolower($search);
+    for($i = 0; $i < mysqli_num_rows($res); ++$i){
+      $row = mysqli_fetch_assoc($res);
+      $data = strtolower($row['data']);
+      if(strpos($data, $lsearch) !== false){
+        $success = true;
+        $pages = explode('<pagebreak', $data);
+        $ct = 0;
+        forEach($pages as $page){
+          if(strpos($page, $lsearch) !== false){
+            if(!isset($memo[$row['userID']])){
+              $uid = $row['userID'];
+              $sql = "SELECT * FROM users WHERE id = $uid";
+              $res2 = mysqli_query($link, $sql);
+              $row2 = mysqli_fetch_assoc($res2);
+              $memo[$row['userID']] = [
+                'avatar' => $row2['avatar'],
+                'userName' => $row2['name'],
+              ];
+            }
+            $ct++;
+            $hits[] = [
+              "userID"   => $row["userID"],
+              "slug"     => $row["slug"],
+              "created"  => $row["created"],
+              "updated"  => $row["updated"],
+              "name"     => $row["name"],
+              "avatar"   => $memo[$row['userID']]['avatar'],
+              "userName" => $memo[$row['userID']]['userName'],
+              "page"     => $ct,
+            ];
+          }
+        }
+      }
+    }
+    
+    $ret = "";
+    
+    forEach($hits as $hit){
+      $ret .= "<div class=\"projectMenuItem\">
+                 <button
+                  class=\"projectButton\"
+                  onclick=\"window.LoadProject('{$hit['slug']}')\"
+                 >{$hit['name']}</button>";
+      if($sanUID == $hit['userID']){
+        $ret .= "<button
+                   class=\"deleteButton\"
+                   title=\"delete this project? -> {$hit['name']}\"
+                   onclick=\"deleteProject('{$hit['slug']}',
+                                           '{$hit['name']}')\"
+                 ></button>";
+      }else{
+        $bg = $hit['avatar'];
+        $un = $hit['userName'];
+        $ret .= "<button
+                   class=\"deleteButton\"
+                   style=\"background-image: url($bg);\"
+                   title=\"user: $un\"
+                 ></button>";
+      }
+      $ret .= "</div>";
+    }
+    
+    return [
+      'success' => $success,
+      'hits' => $hits,
+      'html' => $ret,
+      'name' => 'search results',
+    ];
   }
   
   function updateProject($slug, $content, $userID, $passhash){
@@ -167,7 +254,8 @@
                  </div>";
       }
     }else{
-      $ret .= '<span style="color: #888;"> you have no projects </span>';
+      $ret .= '<br><br><br><div style="color: #888;"> you have no projects </div><br>';
+      $ret .= '<div style="color: #888;"> create a new one by clicking \'new\' above </div>';
     }
     $ret .= '</div>';
     return $ret;
@@ -206,7 +294,7 @@
     $projects = [];
     if(authed($userID, $passhash)){
       $sanUID      = intval($userID);
-      $sql = "SELECT * FROM projects WHERE $userID = $sanUID";
+      $sql = "SELECT * FROM projects WHERE userID = $sanUID";
       $res = mysqli_query($link, $sql);
       if(mysqli_num_rows($res)){
         for($i = 0; $i < mysqli_num_rows($res); ++$i){
@@ -260,6 +348,7 @@
     
   function newProjectTemplate(){
     return "<center>![an example logo](example.jpg)</center>
+    
 # My New Project
     
 click the ***view*** button above to see the effects
@@ -293,7 +382,7 @@ onto as many pages as you like:
 
 ### links and images
 
-links use [this format](https://github.com)
+links use [this format](https://github.com)<br><br>
 
 and images, similarly ![an example logo](example.jpg)
 
@@ -336,44 +425,52 @@ changes made here are pushed immediately, so take care with keystrokes.
         if(mysqli_num_rows($res)){
           $row = mysqli_fetch_assoc($res);
           $data = str_replace('<','&lt;', $row['data']);
-        
-          return [ 'name'    => $row['name'],
-                   'slug'    => $row['slug'],
-                   'private' => intval($row['private']),
-                   'userID'  => $userID,
-                   'success' => true,
-                   'error'   => '',
-                   'page'    => 0,
-                   'data'    => $data];
+          $pUID = $row['userID'];
+          $sql = "SELECT name FROM users WHERE id = $pUID";
+          $res2 = mysqli_query($link, $sql);
+          $row2 = mysqli_fetch_assoc($res2);
+          $userName = $row2['name'];
+          return [ 'name'     => $row['name'],
+                   'slug'     => $row['slug'],
+                   'private'  => intval($row['private']),
+                   'userID'   => $userID,
+                   'userName' => $userName,
+                   'success'  => true,
+                   'error'    => '',
+                   'page'     => 0,
+                   'data'     => $data];
         }else{
-          return [ 'name'    => "create or search projects",
-                   'slug'    => '',
-                   'private' => 0,
-                   'error'   => 'inserted project not found',
-                   'userID'  => $userID,
-                   'success' => false,
-                   'page'    => 0,
-                   'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+          return [ 'name'     => "create or search projects",
+                   'slug'     => '',
+                   'private'  => 0,
+                   'error'    => 'inserted project not found',
+                   'userID'   => $userID,
+                   'userName' => '',
+                   'success'  => false,
+                   'page'     => 0,
+                   'data'     => renderProjectMenu(getProjects($userID, $passhash))];
         }
       }else{
-        return [ 'name'    => "create or search projects",
-                 'slug'    => '',
-                 'private' => 0,
-                 'error'   => 'could not insert project',
-                 'userID'  => $userID,
-                 'success' => false,
-                 'page'    => 0,
-                 'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+        return [ 'name'     => "create or search projects",
+                 'slug'     => '',
+                 'private'  => 0,
+                 'error'    => 'could not insert project',
+                 'userID'   => $userID,
+                 'userName' => '',
+                 'success'  => false,
+                 'page'     => 0,
+                 'data'     => renderProjectMenu(getProjects($userID, $passhash))];
       }
     }else{
-      return [ 'name'    => "create or search projects",
-               'slug'    => '',
-               'private' => 0,
-               'error'   => 'auth failed',
-               'userID'  => $userID,
-               'success' => false,
-               'page'    => 0,
-               'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+      return [ 'name'     => "create or search projects",
+               'slug'     => '',
+               'private'  => 0,
+               'error'    => 'auth failed',
+               'userID'   => $userID,
+               'userName' => '',
+               'success'  => false,
+               'page'     => 0,
+               'data'     => renderProjectMenu(getProjects($userID, $passhash))];
     }
   }
   
@@ -389,43 +486,52 @@ changes made here are pushed immediately, so take care with keystrokes.
         if(mysqli_num_rows($res)){
           $row = mysqli_fetch_assoc($res);
           $data = str_replace('<','&lt;', $row['data']);
-          return [ 'name'    => $row['name'],
-                   'slug'    => $row['slug'],
-                   'private' => intval($row['private']),
-                   'userID'  => $userID,
-                   'success' => true,
-                   'error'   => '',
-                   'page'    => intval($page),
-                   'data'    => $data];
+          $pUID = $row['userID'];
+          $sql = "SELECT name FROM users WHERE id = $pUID";
+          $res2 = mysqli_query($link, $sql);
+          $row2 = mysqli_fetch_assoc($res2);
+          $userName = $row2['name'];
+          return [ 'name'     => $row['name'],
+                   'slug'     => $row['slug'],
+                   'private'  => intval($row['private']),
+                   'userID'   => $userID,
+                   'userName' => $userName,
+                   'success'  => true,
+                   'error'    => '',
+                   'page'     => intval($page),
+                   'data'     => $data];
         }else{
-          return [ 'name'    => "create or search projects",
-                   'slug'    => $slug,
-                   'private' => 0,
-                   'userID'  => $userID,
-                   'success' => false,
-                   'error'   => "slug ($slug) not user\'s. user ok.",
-                   'page'    => intval($page),
-                   'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+          return [ 'name'     => "create or search projects",
+                   'slug'     => $slug,
+                   'private'  => 0,
+                   'userID'   => $userID,
+                   'userName' => '',
+                   'success'  => false,
+                   'error'    => "slug ($slug) not user\'s. user ok.",
+                   'page'     => intval($page),
+                   'data'     => renderProjectMenu(getProjects($userID, $passhash))];
         }
       }else{
-        return [ 'name'    => "create or search projects",
-                 'slug'    => $slug,
-                 'private' => 0,
-                 'error'   => 'user auth not ok.',
-                 'userID'  => $userID,
-                 'success' => false,
-                 'page'    => intval($page),
-                 'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+        return [ 'name'     => "create or search projects",
+                 'slug'     => $slug,
+                 'private'  => 0,
+                 'error'    => 'user auth not ok.',
+                 'userID'   => $userID,
+                 'userName' => '',
+                 'success'  => false,
+                 'page'     => intval($page),
+                 'data'     => renderProjectMenu(getProjects($userID, $passhash))];
       }
     }
-    return [ 'name'    => "create or search projects",
-             'slug'    => $slug,
-             'private' => 0,
-             'error'   => '',
-             'userID'  => $userID,
-             'success' => true,
-             'page'    => intval($page),
-             'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+    return [ 'name'     => "create or search projects",
+             'slug'     => $slug,
+             'private'  => 0,
+             'error'    => '',
+             'userID'   => $userID,
+             'userName' => '',
+             'success'  => true,
+             'page'     => intval($page),
+             'data'     => renderProjectMenu(getProjects($userID, $passhash))];
  }
   
 ?>

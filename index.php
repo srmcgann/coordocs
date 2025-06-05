@@ -6,7 +6,7 @@
   ✔ markdown editor tool w/ toggle
   ✔ docs page for docs
   ✔ page break syntax for markdown
-  * delete button on doc itself, plus list page
+  ✔ delete button on doc itself, plus list page
   * registration
   * search function
   * user profile settings screen, w/ avatar, password change, etc.
@@ -26,6 +26,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
     <title><?=$pageTitle?></title>
     <style>
       body, html{
@@ -57,7 +58,7 @@
         border-bottom: 1px solid #4ff3;
       }
       .coordocsLogo{
-        position: fixed;
+        display: inline-block;
         top: 0;
         right: 0;
         width: 130px;
@@ -71,6 +72,7 @@
       }
       .main{
         text-align: left;
+        height: calc(100vh - 100px);
         border: none;
         padding: 10px;
         padding-top: 0;
@@ -187,7 +189,6 @@
         height: 30px;
         padding: 6px;
         border-radius: 10px;
-        margin-left: 10px;
       }
       .loginInput{
         float: right;
@@ -224,10 +225,9 @@
       .projectList{
         text-align: center;
         overflow-y: auto;
-        height: calc(100vh - 20px);
       }
       a{
-        color: #f08;
+        color: #f80;
         display: inline-block;
       }
       a:visited{
@@ -450,6 +450,7 @@
           id="loginButton"
           class="modalButtons navButtons disabledButton"
           onclick="login()"
+          title="login to an existing profile"
         >
           login
         </button>
@@ -463,6 +464,7 @@
       </span>
       <div
         class="coordocsLogo"
+        style="vertical-align: top; float: right; margin-right: 5px;"
         onclick="navToURL('https://github.com/srmcgann/coordocs')"
         title="visit system repository on Github.com"
        ></div>
@@ -478,6 +480,46 @@
             placeholder="give this doc a name"
           ></input>
         </label>
+      </div>
+      <div class="toolbarComponent" style="display: none;">
+        <button
+          class="navButtons"
+          id="editDocButton"
+          title="edit doc"
+          onclick="toggleEditMode('edit')"
+        >edit</button>
+        <button
+          class="navButtons"
+          id="viewDocButton"
+          title="view contents as others will see it"
+          onclick="toggleEditMode('view')"
+        >view</button>
+        <div class="vSpc"></div>
+        <button
+          class="navButtons newDocButton"
+          id="newDocButton"
+          title="create a new doc"
+          onclick="createDoc()"
+        >new</button>
+      </div>
+      <div class="toolbarComponent" style="display: none;">
+        <label class="checkmarkContainer" title="toggle link visibility">
+          <span id="privateCheckLabel">private</span>
+          <input
+            id="privacyCheck"
+            type="checkbox"
+            oninput="togglePrivate(this)"
+          />
+          <span class="checkmark"></span>
+        </label>
+      </div>
+      <div class="toolbarComponent" style="display: none;">
+        <button
+          class="deleteButton"
+          id="deleteButton"
+          title="delete this project?"
+          onclick="deleteSingleProject()"
+        ></button>
       </div>
       <div class="toolbarComponent">
         <button
@@ -517,39 +559,6 @@
             spellcheck="false"
             onkeyup="searchMaybe(event)"
           />
-        </label>
-      </div>
-      <div class="toolbarComponent" style="display: none;">
-        <!-- <span class="loginLabel">doc</span> -->
-        <button
-          class="navButtons"
-          id="editDocButton"
-          title="edit doc"
-          onclick="toggleEditMode('edit')"
-        >edit</button>
-        <button
-          class="navButtons"
-          id="viewDocButton"
-          title="view contents as others will see it"
-          onclick="toggleEditMode('view')"
-        >view</button>
-        <div class="vSpc"></div>
-        <button
-          class="navButtons newDocButton"
-          id="newDocButton"
-          title="create a new doc"
-          onclick="createDoc()"
-        >new</button>
-      </div>
-      <div class="toolbarComponent" style="display: none;">
-        <label class="checkmarkContainer" title="toggle link visibility">
-          <span id="privateCheckLabel">private</span>
-          <input
-            id="privacyCheck"
-            type="checkbox"
-            oninput="togglePrivate(this)"
-          />
-          <span class="checkmark"></span>
         </label>
       </div>
       <div class="toolbarComponent">
@@ -605,8 +614,48 @@
       window.searchMaybe = e => {
         var searchField = document.querySelector('#searchField')
         if(e.keyCode == 13) {
-          console.log('searching for: ', searchField.value)
+          var search = searchField.value
+          console.log('searching for: ', search)
           searchField.value = ''
+          
+          let sendData = { search, userID, passhash }
+          var url = URLbase + '/search.php'
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData),
+          }).then(res => res.json()).then(data => {
+            if(data.success){
+              html = data.html
+            }else{
+              html = `<div 
+                       style="position:relative; top:calc(50vh - 200px); width: 500px; left: 50%; transform: translate(-50%);"
+                       class="projectList"
+                       id="projList"
+                      >
+                       <div
+                         class="coordocsLogo"
+                         style="vertical-align: middle;"
+                         onclick="navToURL('https://github.com/srmcgann/coordocs')"
+                         title="visit system repository on Github.com"
+                        ></div>
+                        found no hits... sorry<br><br>
+                      </div>`
+            }
+
+            document.querySelector('#screenName').value = data.name
+            curPageName = data.name
+
+            projectUserName = data.userName
+            
+            var checkbox = document.querySelector('#privacyCheck')
+            checkbox.checked = !!(+data.private)
+            document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
+
+            Refresh(data.success)
+          })
         }
       }
       
@@ -638,7 +687,6 @@
           password,
           passhash: subPasshash
         }
-        console.log('submitting login', sendData)
         var url = URLbase + '/login.php'
         fetch(url, {
           method: 'POST',
@@ -653,7 +701,6 @@
             avatar   = data.avatar
             html     = data.data
             loggedin = true
-            console.log('logged in successfully')
             UpdateCookie()
             closePrompts()
           } else {
@@ -747,9 +794,12 @@
           loginButton.className = 'authButtons'
           loginButton.onclick = () => showPrompt('login')
           loginButton.innerHTML = 'login'
+          loginButton.title = 'login to an existing profile'
           loginEl.appendChild(loginButton)
           var registerButton = document.createElement('button')
           registerButton.className = 'authButtons'
+          registerButton.id = 'regButton'
+          registerButton.title = 'create a new profile'
           registerButton.onclick = window.Register
           registerButton.innerHTML = 'register'
           loginEl.appendChild(registerButton)
@@ -758,7 +808,7 @@
       
       const UpdateNavWidget = () => {
         document.querySelectorAll('.main')[0].scroll(0,0)
-        document.querySelector('#pageNo').innerHTML = `page<br>${CurPage()} of ${totalPages+1}`
+        document.querySelector('#pageNo').innerHTML = `page<br>${CurPage()} of ${totalPages()+1}`
         
         document.querySelector('#page1Button').style.background = CurPage() > 1 ? 
                                                  '#4f8' : '#333'
@@ -771,19 +821,18 @@
                                                  '#032' : '#111'
         
         
-        document.querySelector('#pageAdvButton').style.background = CurPage() < totalPages + 1 ? 
-                                                 '#4f8' : '#333'
-        document.querySelector('#pageAdvButton').style.color = CurPage() < totalPages + 1 ? 
-                                                 '#032' : '#111'
+        document.querySelector('#pageAdvButton').style.background = CurPage() < totalPages() + 1 ? '#4f8' : '#333'
+        document.querySelector('#pageAdvButton').style.color = CurPage() < totalPages() + 1 ? '#032' : '#111'
         
-        document.querySelector('#pageLastButton').style.background = CurPage() < totalPages + 1 ? 
-                                                 '#4f8' : '#333'
-        document.querySelector('#pageLastButton').style.color = CurPage() < totalPages + 1 ? 
-                                                 '#032' : '#111'
-                                                 
-        document.querySelector('#pageNo').parentNode.style.display = totalPages > 0 ? 'inline-block' : 'none'
+        document.querySelector('#pageLastButton').style.background = CurPage() < totalPages() + 1 ? '#4f8' : '#333'
+        document.querySelector('#pageLastButton').style.color = CurPage() < totalPages() + 1 ? '#032' : '#111'
+        document.querySelector('#pageNo').parentNode.style.display = totalPages() > 0 ? 'inline-block' : 'none'
       }
 
+      window.deleteSingleProject = () => {
+        deleteProject(slug, curPageName)
+      }
+      
       window.deleteProject = (slug, name) => {
         var response = prompt('delete this project? -> ' + name + "\n>>> THIS IS IRREVERSIBLE <<<\ntype 'yes' to confirm")
         if(response == 'yes'){
@@ -796,11 +845,46 @@
             },
             body: JSON.stringify(sendData),
           }).then(res => res.json()).then(data => {
-            console.log(`delete.php response: `, data)
             html = data.data
-            Refresh(data.success)
+            updateURL('s', '')
+            updateURL('p', '')
+            location.reload()
           })
         }
+      }
+      
+      const ShowWelcomeScreen = () => {
+        var rb = document.querySelector('#regButton').cloneNode(true)
+        html = `<div 
+                 style="position:relative; top:calc(50vh - 200px); width: 500px; left: 50%; transform: translate(-50%);"
+                 class="projectList"
+                 id="projList"
+                >
+                 <div
+                   class="coordocsLogo"
+                   style="vertical-align: middle;"
+                   onclick="navToURL('https://github.com/srmcgann/coordocs')"
+                   title="visit system repository on Github.com"
+                  ></div>
+                  is a markdown prettifier, with pages<br><br>
+                  <ol style="text-align: left;">
+                    <li>pick a user name</li>
+                    <li>create a doc</li>
+                    <li>paste GitHub style markdown, e.g. README.md contents</li>
+                    <li>add &lt;pagebreak/> tags to split it</li>
+                  </ol>
+                </div>`
+        setTimeout(()=>{
+          rb.onclick = window.Register
+          document.querySelector('#projList').appendChild(rb)
+          var exLink = document.createElement('a')
+          exLink.href = './?s=example'
+          exLink.target = '_blank'
+          exLink.innerHTML = 'click here for an example doc'
+          document.querySelector('#projList').innerHTML += '<br><br><br>'
+          document.querySelector('#projList').appendChild(exLink)
+        }, 0)
+
       }
       
       window.navToPage = pg => {
@@ -810,12 +894,12 @@
             if(CurPage() == 1) return
             tgt = 1
           break
-          case '+1': tgt = Math.min(totalPages + 1, CurPage() + 1); break
+          case '+1': tgt = Math.min(totalPages() + 1, CurPage() + 1); break
           case '-1':
             if(CurPage() == 1) return
             tgt = Math.max(1, CurPage() - 1);
           break
-          case 'last': tgt = totalPages + 1; break
+          case 'last': tgt = totalPages() + 1; break
         }
         updateURL('p', tgt, false)
         Refresh()
@@ -852,14 +936,15 @@
       var slug            = GetURLParam('s')
       var page            = GetURLParam('p')
       var viewMode        = 'view'
+      var projectUserName = ''
       var html            = ''
       var curPageName = ''
-      var totalPages      = 0
+      var totalPages      = () => GetURLParam('s') ? html.split('&lt;pagebreak').length - 1 : 0
       
       const GetPageData = () => {
+        projectUserName= ''
         let sendData = { passhash, userID, slug, page }
         var url = URLbase + '/getPageData.php'
-        console.log('sendData', sendData)
         fetch(url, {
           method: 'POST',
           headers: {
@@ -867,13 +952,25 @@
           },
           body: JSON.stringify(sendData),
         }).then(res => res.json()).then(data => {
-          if(!data.success) updateURL('s', '')
-          html = data.data
+          
+          if(data.success) {
+            if(loggedin){
+              html = data.data
+            }else{
+              if(!slug){
+                ShowWelcomeScreen()
+              }else{
+                html = data.data
+              }
+            }
+          }else{
+            updateURL('s', '')
+            ShowWelcomeScreen()
+          }
           document.querySelector('#screenName').value = data.name
           curPageName = data.name
 
-          document.querySelector('#screenName').value = data.name
-          curPageName = data.name
+          projectUserName = data.userName
           
           var checkbox = document.querySelector('#privacyCheck')
           checkbox.checked = !!(+data.private)
@@ -884,26 +981,37 @@
       }
       
       
-      window.toggleEditMode = (mode, forceReload=false) => {
-        if(slug){
+      window.toggleEditMode = (mode, forceReload=false, fromNewButton=false) => {
+        if(slug && projectUserName == userName){
           switch(mode){
             case 'edit':
               document.querySelector('#editDocButton').style.background = '#2f4'
               document.querySelector('#viewDocButton').style.background = '#252'
               document.querySelector('#editDocButton').style.color = '#021'
-              document.querySelector('#viewDocButton').style.color = '#122'
+              document.querySelector('#viewDocButton').style.color = '#2f8'
               document.querySelector('#editDocButton').style.boxShadow = '0 0 3px #40f'
               document.querySelector('#viewDocButton').style.boxShadow = 'none'
             break
             case 'view':
               document.querySelector('#editDocButton').style.background = '#252'
               document.querySelector('#viewDocButton').style.background = '#2f4'
-              document.querySelector('#editDocButton').style.color = '#122'
+              document.querySelector('#editDocButton').style.color = '#2f8'
               document.querySelector('#viewDocButton').style.color = '#021'
               document.querySelector('#editDocButton').style.boxShadow = 'none'
               document.querySelector('#viewDocButton').style.boxShadow = '0 0 3px #40f'
             break
           }
+          if(viewMode != mode || forceReload){
+            if(viewMode == 'edit'){
+              if(!fromNewButton) {
+                location.reload()
+              }
+            }
+            viewMode = mode
+            DisplayContent()
+          }
+          if(viewMode == 'view') UpdateNavWidget()
+            document.querySelector('#privacyCheck').parentNode.parentNode.style.display='inline-block'
         }else{
           document.querySelector('#editDocButton').style.background = '#333'
           document.querySelector('#viewDocButton').style.background = '#333'
@@ -911,12 +1019,8 @@
           document.querySelector('#viewDocButton').style.color = '#111'
           document.querySelector('#editDocButton').style.boxShadow = 'none'
           document.querySelector('#viewDocButton').style.boxShadow = 'none'
+          document.querySelector('#privacyCheck').parentNode.parentNode.style.display='none'
         }
-        if(viewMode != mode || forceReload){
-          viewMode = mode
-          DisplayContent()
-        }
-        if(viewMode == 'view') UpdateNavWidget()
       }
       
       window.createDoc = () => {
@@ -929,9 +1033,12 @@
           },
           body: JSON.stringify(sendData),
         }).then(res => res.json()).then(data => {
-          if(!data.success) updateURL('s', '')
+          if(!data.success) {
+            updateURL('s', '')
+          }else{
+            projectUserName = userName
+          }
           
-          console.log(data)
           slug = data.slug
           html = data.data
 
@@ -939,11 +1046,13 @@
           curPageName = data.name
           
           var checkbox = document.querySelector('#privacyCheck')
+          checkbox.parentNode.parentNode.style.display = 'inline-block'
+          document.querySelector('#deleteButton').parentNode.style.display = 'inline-block'
           checkbox.checked = !!(+data.private)
           document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
           
           Refresh(data.success)
-          window.toggleEditMode(viewMode = 'edit', true)
+          window.toggleEditMode(viewMode = 'edit', true, true)
           updateURL('s', slug)
           updateURL('p', 1)
         })
@@ -966,7 +1075,7 @@
       }
       
       window.updateProjectName = name => {
-        if(slug){
+        if(slug && projectUserName == userName){
           let sendData = { slug, userID, passhash, name }
           var url = URLbase + '/updateProjectName.php'
           fetch(url, {
@@ -1015,7 +1124,7 @@
           },
           body: JSON.stringify(sendData),
         }).then(res => res.json()).then(data => {
-          if(!data.success) console.log(`error`, data.error)
+          if(!data.success) console.error(`error`, data.error)
         })
       }
       
@@ -1041,14 +1150,15 @@
             var htmlObj = success ? 
               MarkdownToHTML.Convert(html, CurPage(),
                 document.querySelector('#pageNo').parentNode, mainEl) :
-                { html, totalPages }
+                { html, totalPages: totalPages() }
             mainEl.innerHTML = htmlObj.html
             mainEl.style.padding = '10px'
             mainEl.style.maxHeight = 'calc(100vh - 215px)';
             mainEl.style.paddingBottom = '100px'
-            totalPages = htmlObj.totalPages ? htmlObj.totalPages : totalPages
+            //totalPages() = htmlObj.totalPages ? htmlObj.totalPages : totalPages()
             if(success) hljs.highlightAll()
-            document.querySelector('#pageNo').parentNode.style.display = totalPages > 1 ? 'inline-block' : 'none'
+            document.querySelector('#pageNo').parentNode.style.display = totalPages() > 1 ? 'inline-block' : 'none'
+
           }
         }else{
           mainEl.innerHTML = html
@@ -1058,8 +1168,11 @@
       const Refresh = (success = true) => {
 
         if(slug) {
-          document.querySelector('#screenName').style.color = '#4f8'
+          document.querySelector('#screenName').style.color = projectUserName == userName ? '#4f8' : '#aaa'
           if(loggedin){
+            if(projectUserName == userName){
+              document.querySelector('#deleteButton').parentNode.style.display = 'inline-block'
+            }
             document.querySelector('#newDocButton').parentNode.style.display = 'inline-block'
             document.querySelector('.checkmarkContainer').parentNode.style.display = 'inline-block'
           }
@@ -1075,9 +1188,8 @@
         
         if(CurPage() == 0) navToPage('+1')
         DisplayContent(success)
-        console.log('curpage', CurPage())
-        if(CurPage() > totalPages+1) {
-          updateURL('p', totalPages+1)
+        if(CurPage() > totalPages()+1) {
+          updateURL('p', totalPages()+1)
           Refresh()
         }
         if(CurPage() < 1) {
@@ -1085,11 +1197,13 @@
           Refresh()
         }
         UpdateNavWidget()
+        toggleEditMode(viewMode)
       }
       
       CheckLogin()
-      window.toggleEditMode(viewMode)
+      //window.toggleEditMode(viewMode)
     </script>
   </body>
 </html>
+
 

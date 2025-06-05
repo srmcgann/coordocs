@@ -35,7 +35,7 @@ base0F  #a886bf  Deprecated, Opening/Closing Embedded Language Tags, e.g. <?php 
 */
 
 pre code.hljs {
-  display: block;
+  display: inline-block;
   overflow-x: auto;
   padding: 1em;
   padding-top: 4px;
