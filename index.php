@@ -7,8 +7,8 @@
   ✔ docs page for docs
   ✔ page break syntax for markdown
   ✔ delete button on doc itself, plus list page
+  ✔ search function
   * registration
-  * search function
   * user profile settings screen, w/ avatar, password change, etc.
   * copy button @ all code blocks
   * theme selector
@@ -1205,5 +1205,3 @@
     </script>
   </body>
 </html>
-
-
