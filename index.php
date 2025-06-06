@@ -33,7 +33,7 @@
         width: 100vw;
         min-height: 100vh;
         margin: 0;
-        background: #080810;
+        background: #111;
         color: #edc;
         font-family: monospace, verdana;
         font-size: 16px;
@@ -71,16 +71,20 @@
         cursor: pointer;
       }
       .main{
-        text-align: left;
-        height: calc(100vh - 100px);
+        height: calc(100vh - 250px);
         border: none;
         padding: 10px;
         padding-top: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        background: #222;
+        background: #111;
         color: #ffd;
         font-family: monospace, verdana;
+        padding-bottom: 200px;
+      }
+      .coordocsSearchResult{
+        background: #8f4;
+        color: #132;
       }
       .main img{
         display: block;
@@ -110,12 +114,20 @@
         background-repeat: no-repeat;
         background-position: center center;
       }
+      .projectDetailsTable{
+        border-collapse: collapse;
+        font-size: 16px;
+        width: 100%;
+        border-radius: 10px;
+        background: #000;
+      }
       .toolbar{
         top: 36px;
         width: 100%;
-        margin-top: 36px;
+        margin-top: -3px;
+        position: fixed;
         font-size: 25px;
-        padding: 2px;
+        padding-top: 2px;
         background: #000;
         text-align: left;
       }
@@ -160,23 +172,74 @@
       }
       .projectMenuItem{
         padding: 2px;
+        font-size: 0;
         background: #333;
+        border-radius: 8px;
         display: inline-block;
         margin: 10px;
         vertical-align: middle;
       }
+      .highlight{
+        color: #000;
+        background: #af6;
+      }
+      .projectAvatar{
+        width: 75px;
+        height: 75px;
+        border-radius: 50%;
+        border: none;
+        background-color: #222;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center center;
+      }
+      .projectDetailLabel{
+        border-bottom: 1px solid #8884;
+        border-right: 1px solid #8884;
+        color: #48f;
+        padding-right: 3px;
+        text-align: right;
+      }
+      .projectDetailItem{
+        border-bottom: 1px solid #8884;
+        color: #f84;
+        padding-left: 3px;
+        text-align: left;
+      }
+      .projectTools{
+        height: 100px;
+        width: 40px;
+        background: #000;
+        margin: 3px;
+        display: inline-block;
+        vertical-align: top;
+      }
+      .userProjectCluster{
+        display: inline-block;
+        vertical-align: top;
+        margin: 5px;
+      }
+      .userName{
+        font-size: 16px;
+        color: #f00;
+      }
       .projectButton{
         width: 200px;
-        border: 1px solid #4f84;
-        border-radius: 2px;
+        border: none;
+        border-radius: 16px;
         margin: 5px;
         font-size: 20px;
         font-family: monospace, verdana;
         padding: 3px;
-        background: #208;
+        background-color: #111;
+        background-image: url(doc.png);
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center center;
         color: #fff;
-        text-shadow: 2px 2px 3px #000;
-        min-height: 32px;
+        text-shadow: 0px 0px 8px #0ff;
+        min-height: 100px;
+        font-weight: 900;
       }
       .deleteButton{
         background-image: url(delete.png);
@@ -224,7 +287,7 @@
       }
       .projectList{
         text-align: center;
-        overflow-y: auto;
+        overflow-y: hidden;
       }
       a{
         color: #f80;
@@ -426,6 +489,7 @@
           <label for="userName" class="loginLabel">
             user name
             <input
+              maxlength="64"
               id="userName"
               spellcheck="false"
               onkeyup="loginInput(event)"
@@ -436,6 +500,7 @@
           <label for="password" class="loginLabel">
             password 
             <input
+              maxlength="128"
               id="password"
               type="password"
               onkeyup="loginInput(event)"
@@ -474,6 +539,7 @@
         <label for="screenName">
           <span class="loginLabel">this doc</span>
           <input
+            maxlength="1024"
             oninput="updateProjectName(this.value)"
             id="screenName"
             class="textInput"
@@ -552,6 +618,7 @@
         <label for="searchField">
           <div class="icon" style="background-image: url(search.png);"></div>
           <input
+            maxlength="1024"
             type="text"
             class="textInput"
             id="searchField"
@@ -564,9 +631,9 @@
       <div class="toolbarComponent">
         <div id="loginContainer"></div>
       </div>
-    </div>
 
-    <div class="main"></div>
+      <div class="main"></div>
+    </div>
 
     <script type="module">
       import * as MarkdownToHTML from "./md2html.js"
@@ -606,16 +673,20 @@
         }
       }
 
-      window.LoadProject = slug => {
-        location.href = updateURL('p', 1, false)
+      window.LoadProject = (slug, page=1) => {
+        location.href = updateURL('p', page, false)
         location.href = updateURL('s', slug, true)
       }
       
       window.searchMaybe = e => {
         var searchField = document.querySelector('#searchField')
         if(e.keyCode == 13) {
+          toggleEditMode('view', true)
+          slug = ''
+          page = ''
           var search = searchField.value
           console.log('searching for: ', search)
+          updateURL('h', encodeURIComponent(search))
           searchField.value = ''
           
           let sendData = { search, userID, passhash }
@@ -627,8 +698,17 @@
             },
             body: JSON.stringify(sendData),
           }).then(res => res.json()).then(data => {
+            console.log('search data', data)
             if(data.success){
               html = data.html
+              
+              updateURL('s', '')
+              updateURL('p', '')
+              setTimeout(() => {
+                document.querySelector('#screenName').value = data.name
+                curPageName = data.name
+                Refresh(true)
+              }, 0)
             }else{
               html = `<div 
                        style="position:relative; top:calc(50vh - 200px); width: 500px; left: 50%; transform: translate(-50%);"
@@ -643,18 +723,11 @@
                         ></div>
                         found no hits... sorry<br><br>
                       </div>`
+              document.querySelector('#screenName').value = data.name
+              curPageName = data.name
+              Refresh()
             }
 
-            document.querySelector('#screenName').value = data.name
-            curPageName = data.name
-
-            projectUserName = data.userName
-            
-            var checkbox = document.querySelector('#privacyCheck')
-            checkbox.checked = !!(+data.private)
-            document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
-
-            Refresh(data.success)
           })
         }
       }
@@ -845,7 +918,7 @@
             },
             body: JSON.stringify(sendData),
           }).then(res => res.json()).then(data => {
-            html = data.data
+            //html = data.data
             updateURL('s', '')
             updateURL('p', '')
             location.reload()
@@ -935,6 +1008,7 @@
       var mainEl          = document.querySelectorAll('.main')[0]
       var slug            = GetURLParam('s')
       var page            = GetURLParam('p')
+      var highlight       = GetURLParam('h')
       var viewMode        = 'view'
       var projectUserName = ''
       var html            = ''
@@ -1021,6 +1095,7 @@
           document.querySelector('#viewDocButton').style.boxShadow = 'none'
           document.querySelector('#privacyCheck').parentNode.parentNode.style.display='none'
         }
+        document.querySelector('.main').style.textAlign = slug ? 'left' : 'center'
       }
       
       window.createDoc = () => {
@@ -1147,18 +1222,56 @@
           }else{
             var teEl = document.querySelector('#textEditor')
             if(teEl) teEl.remove()
+            var dh = ''
+            if(highlight) {
+              dh = decodeURIComponent(highlight)
+            }
+            
             var htmlObj = success ? 
               MarkdownToHTML.Convert(html, CurPage(),
                 document.querySelector('#pageNo').parentNode, mainEl) :
                 { html, totalPages: totalPages() }
-            mainEl.innerHTML = htmlObj.html
+            
+            // highlight search string maybe
+            var hHtml
+            if(highlight){
+              var s = '', s2, ct = 0
+              var splt = htmlObj.html.toLowerCase().split(dh.toLowerCase())
+              splt.forEach((v, i) => {
+                for(var j = 0; j < v.length; ++j){
+                  s += htmlObj.html[ct]
+                  ct++
+                }
+                if(i < splt.length - 1){
+                  s2 = ''
+                  for(var j = 0; j < dh.length; ++j){
+                    s2 += htmlObj.html[ct]
+                    ct++
+                  }
+                  s += (s.substr(s.length-20).toLowerCase().indexOf('src=') == -1 &&
+                        s.substr(s.length-20).toLowerCase().indexOf('href=') == -1) ?
+                         `<font class="coordocsSearchResult" class="highlight">${s2}</font>` : s2
+                }
+              })
+              hHtml = s.replaceAll("\n", "<br>\n")
+            }else{
+              hHtml = htmlObj.html
+            }
+            
+            mainEl.innerHTML = hHtml
             mainEl.style.padding = '10px'
             mainEl.style.maxHeight = 'calc(100vh - 215px)';
             mainEl.style.paddingBottom = '100px'
             //totalPages() = htmlObj.totalPages ? htmlObj.totalPages : totalPages()
             if(success) hljs.highlightAll()
             document.querySelector('#pageNo').parentNode.style.display = totalPages() > 1 ? 'inline-block' : 'none'
-
+            if(highlight){
+              setTimeout(()=>{
+                document.querySelectorAll('.coordocsSearchResult')[0].scrollIntoView({
+                  behavior: 'smooth', block: 'center',
+                })
+              }, 0)
+            }
           }
         }else{
           mainEl.innerHTML = html
@@ -1205,3 +1318,4 @@
     </script>
   </body>
 </html>
+

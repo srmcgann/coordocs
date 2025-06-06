@@ -114,20 +114,34 @@
     global $link;
     $success = false;
     $memo = [];
-    $sanUID = intval($userID);
+    $sanUID = authed($userID, $passhash) ? intval($userID) : -1;
     $sql = "SELECT * FROM projects WHERE userID = $sanUID OR private = 0";
     $res = mysqli_query($link, $sql);
     $hits = [];
+    $esearch = urlencode($search);
+    $esearch = str_replace('+', '%20', $esearch);
+    $esearch = str_replace('_', '%2F', $esearch);
+    $esearch = str_replace('.', '%2E', $esearch);
+    $esearch = str_replace('-', '%2D', $esearch);
     $lsearch = strtolower($search);
     for($i = 0; $i < mysqli_num_rows($res); ++$i){
       $row = mysqli_fetch_assoc($res);
       $data = strtolower($row['data']);
       if(strpos($data, $lsearch) !== false){
         $success = true;
-        $pages = explode('<pagebreak', $data);
-        $ct = 0;
-        forEach($pages as $page){
-          if(strpos($page, $lsearch) !== false){
+        $epages = explode('<pagebreak', $data);
+        $page = 0;
+        $hitsInPage = 0;
+        $hitsInProj = 0;
+        forEach($epages as $pg){
+          if(strpos($pg, $lsearch) !== false){
+            $hitsInProj += sizeof(explode($lsearch, $pg))-1;
+          }
+        }
+        forEach($epages as $pg){
+          $page++;
+          if(strpos($pg, $lsearch) !== false){
+            $hitsInPage = sizeof(explode($lsearch, $pg))-1;
             if(!isset($memo[$row['userID']])){
               $uid = $row['userID'];
               $sql = "SELECT * FROM users WHERE id = $uid";
@@ -138,30 +152,49 @@
                 'userName' => $row2['name'],
               ];
             }
-            $ct++;
             $hits[] = [
-              "userID"   => $row["userID"],
-              "slug"     => $row["slug"],
-              "created"  => $row["created"],
-              "updated"  => $row["updated"],
-              "name"     => $row["name"],
-              "avatar"   => $memo[$row['userID']]['avatar'],
-              "userName" => $memo[$row['userID']]['userName'],
-              "page"     => $ct,
+              "userID"     => $row["userID"],
+              "slug"       => $row["slug"],
+              "created"    => prettyDate($row["created"]),
+              "updated"    => prettyDate($row["updated"]),
+              "name"       => $row["name"],
+              "avatar"     => $memo[$row['userID']]['avatar'],
+              "userName"   => $memo[$row['userID']]['userName'],
+              "hitsInPage" => $hitsInPage,
+              "hitsInProj" => $hitsInProj,
+              "page"       => $page,
+              "links"      => [],
             ];
           }
         }
       }
     }
     
-    $ret = "";
-    
+    $nHits = [];
+    $memo  = [];
     forEach($hits as $hit){
+      if(!isset($memo[$hit['slug']])){
+        $memo[$hit['slug']] = 1;
+        forEach($hit as $key => $val) $nHits[$hit['slug']][$key] = $val;
+      }
+      $nHits[$hit['slug']]['links'][] = [
+        'href' => 
+          "./?h=$esearch&s={$hit['slug']}&p={$hit['page']}",
+        'text' => "page link (<font style=\"color: #484\">pg# {$hit['page']}</font>)",
+        'hitsInPage' => $hit['hitsInPage'],
+        ];
+    }
+    //$hits = [];
+    //forEach($nHits as $key => $hit) $hits[] = $hit;
+    
+    
+    $ret = "<br><br>SEARCH RESULTS MATCHING:<br>&quot;$search&quot;<br><br>";
+    
+    forEach($nHits as $key => $hit){
+      $bg = $hit['avatar'];
+      $un = $hit['userName'];
       $ret .= "<div class=\"projectMenuItem\">
-                 <button
-                  class=\"projectButton\"
-                  onclick=\"window.LoadProject('{$hit['slug']}')\"
-                 >{$hit['name']}</button>";
+                 <div class=\"projectTools\">";
       if($sanUID == $hit['userID']){
         $ret .= "<button
                    class=\"deleteButton\"
@@ -169,16 +202,54 @@
                    onclick=\"deleteProject('{$hit['slug']}',
                                            '{$hit['name']}')\"
                  ></button>";
-      }else{
-        $bg = $hit['avatar'];
-        $un = $hit['userName'];
-        $ret .= "<button
-                   class=\"deleteButton\"
+      }
+      $ret .= "</div>
+                 <button
+                  class=\"projectButton\"
+                  onclick=\"window.LoadProject('{$hit['slug']}',{$hit['page']})\"
+                 >{$hit['name']}</button>";
+      $ret .= "<div class=\"userProjectCluster\">
+                 <button
+                   class=\"projectAvatar\"
                    style=\"background-image: url($bg);\"
                    title=\"user: $un\"
-                 ></button>";
+                 ></button><br>
+                 <span class=\"userName\">{$hit['userName']}</span>
+               </div><br>
+               <div class=\"projectDetails\">
+                 <table class=\"projectDetailsTable\">
+                   <tr>
+                     <td class=\"projectDetailLabel\">user</td>
+                     <td class=\"projectDetailItem\">{$hit['userName']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">slug</td>
+                     <td class=\"projectDetailItem\">{$hit['slug']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">updated</td>
+                     <td class=\"projectDetailItem\">{$hit['updated']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">created</td>
+                     <td class=\"projectDetailItem\">{$hit['created']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">total hits</td>
+                     <td class=\"projectDetailItem\">{$hit['hitsInProj']}</td>
+                   </tr>";
+      $ct = 0;
+      forEach($hit['links'] as $link){
+        $ct++;
+           $pl = intval($link['hitsInPage']) > 1 ? 's' : '';
+           $ret .= "<tr>
+                     <td class=\"projectDetailLabel\"><font style=\"color: #484\">{$link['hitsInPage']} hit$pl</font> link $ct</td>
+                     <td class=\"projectDetailItem\">
+                       <a href=\"{$link['href']}\">{$link['text']}</a>
+                     </td>
+                   </tr>";
       }
-      $ret .= "</div>";
+      $ret .= "</table></div></div>";
     }
     
     return [
@@ -237,21 +308,56 @@
   }
 
   function renderProjectMenu($projects){
-    $ret = '<div class="projectList"><br><br>my projects<br><br>';
+    $ret = '<div class="projectList"><br>my projects<br><br>';
     if(sizeof($projects) > 0){
       forEach($projects as $project){
         $ret .= "<div class=\"projectMenuItem\">
-                   <button
-                    class=\"projectButton\"
-                    onclick=\"window.LoadProject('{$project['slug']}')\"
-                   >{$project['name']}</button>
-                   <button
+                  <div class=\"projectTools\">";
+        $ret .=   "<button
                      class=\"deleteButton\"
                      title=\"delete this project? -> {$project['name']}\"
                      onclick=\"deleteProject('{$project['slug']}',
                                              '{$project['name']}')\"
-                   ></button>
-                 </div>";
+                   ></button></div>";
+        
+        $ret .=   "<button
+                    class=\"projectButton\"
+                    onclick=\"window.LoadProject('{$project['slug']}')\"
+                   >{$project['name']}</button>
+                   <div class=\"userProjectCluster\">
+                     <button
+                       class=\"projectAvatar\"
+                       style=\"background-image: url({$project['avatar']});\"
+                       title=\"user: {$project['user']}\"
+                     ></button><br>
+                     <span class=\"userName\">{$project['user']}</span>
+                   </div><br>";
+                   
+        $pvt = '<font style="color:'.($project['private']?'#f02;">true':'#2f8;">false').'</font>';
+        $ret .="<div class=\"projectDetails\">
+                 <table class=\"projectDetailsTable\">
+                   <tr>
+                     <td class=\"projectDetailLabel\">user</td>
+                     <td class=\"projectDetailItem\">{$project['user']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">slug</td>
+                     <td class=\"projectDetailItem\">{$project['slug']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">updated</td>
+                     <td class=\"projectDetailItem\">{$project['updated']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">created</td>
+                     <td class=\"projectDetailItem\">{$project['created']}</td>
+                   </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">private</td>
+                     <td class=\"projectDetailItem\">$pvt</td>
+                   </tr>
+                 </table></div>";
+        $ret .= "</div>";
       }
     }else{
       $ret .= '<br><br><br><div style="color: #888;"> you have no projects </div><br>';
@@ -297,11 +403,21 @@
       $sql = "SELECT * FROM projects WHERE userID = $sanUID";
       $res = mysqli_query($link, $sql);
       if(mysqli_num_rows($res)){
+        $sql = "SELECT * FROM users WHERE id = $sanUID";
+        $res2 = mysqli_query($link, $sql);
+        $row2 = mysqli_fetch_assoc($res2);
+        $userName = $row2['name'];
+        $avatar = $row2['avatar'];
         for($i = 0; $i < mysqli_num_rows($res); ++$i){
           $row = mysqli_fetch_assoc($res);
           $projects[] = [
-            'name' => $row['name'],
-            'slug' => $row['slug'],
+            'user'    => $userName,
+            'avatar'  => $avatar,
+            'name'    => $row['name'],
+            'slug'    => $row['slug'],
+            'created' => prettyDate($row['created']),
+            'updated' => prettyDate($row['updated']),
+            'private' => $row['private'],
           ];
         }
       }
@@ -535,5 +651,6 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
+
 
 

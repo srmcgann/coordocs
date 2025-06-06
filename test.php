@@ -1,6 +1,12 @@
 <?
 require('db.php');
-  $seen = date(strtotime('2025-05-15 23:29:15'));
-  $now = time();
-  echo (($now - $seen) > 8) . "\n";
+
+$ar = [];
+$ar['abc'] = 1234;
+$ar['def'] = 5678;
+$ar[123] = 'abc';
+forEach($ar as $key => $val){
+  echo "$key => $val \n";
+}
+
 ?>
