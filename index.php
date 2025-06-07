@@ -8,9 +8,9 @@
   ✔ page break syntax for markdown
   ✔ delete button on doc itself, plus list page
   ✔ search function
+  * copy button @ all code blocks
   * registration
   * user profile settings screen, w/ avatar, password change, etc.
-  * copy button @ all code blocks
   * theme selector
 -->
 <?php
@@ -26,6 +26,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <link rel="icon" type="image/png" href="doc.png">
     <meta charset="UTF-8">
     <title><?=$pageTitle?></title>
     <style>
@@ -46,6 +47,7 @@
         line-height: 1em;
       }
       .header{
+        z-index: 10;
         position: fixed;
         top: 0;
         width: 100vw;
@@ -71,7 +73,7 @@
         cursor: pointer;
       }
       .main{
-        height: calc(100vh - 250px);
+        height: calc(100vh - 200px);
         border: none;
         padding: 10px;
         padding-top: 0;
@@ -114,6 +116,35 @@
         background-repeat: no-repeat;
         background-position: center center;
       }
+      [data-customtooltip] {
+        position: relative;
+        cursor: help;
+      }
+      [data-customtooltip]::after{
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        content: attr(data-customtooltip);
+        left: 50%;
+        top: calc(100% - 5px);
+        background-color: #206a;
+        color: #af4;
+        border-radius: 8px;
+        z-index: 10000;
+        padding: 8px;
+        font-size: 16px;
+        line-height: 1em;
+        max-width: 200px;
+        min-width: 100px;
+        transform: translate(-50%, -30px);
+        transition: all 150ms cubic-bezier(.25, .8, .25, 1);
+      }
+      [data-customtooltip]:hover::after{
+        opacity: 1;
+        transform: translate(-50%, 0);
+        transition-duration: 300ms;
+      }
+      
       .projectDetailsTable{
         border-collapse: collapse;
         font-size: 16px;
@@ -126,7 +157,7 @@
         width: 100%;
         margin-top: -3px;
         position: fixed;
-        font-size: 25px;
+        font-size: 16px;
         padding-top: 2px;
         background: #000;
         text-align: left;
@@ -208,11 +239,12 @@
       }
       .projectTools{
         height: 100px;
-        width: 40px;
+        width: 60px;
         background: #000;
         margin: 3px;
         display: inline-block;
         vertical-align: top;
+        border-radius: 20px;
       }
       .userProjectCluster{
         display: inline-block;
@@ -242,15 +274,51 @@
         font-weight: 900;
       }
       .deleteButton{
-        background-image: url(delete.png);
+        background-color: #211;
+      }
+      .editButton{
+        background-color: #132;
+      }
+      #copyConfirmation{
+        display: none;
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        background: #012d;
+        color: #8ff;
+        opacity: 1;
+        text-shadow: 0 0 5px #fff;
+        font-size: 46px;
+        text-align: center;
+        z-index: 10000;
+      }
+      #innerCopied{
+        position: absolute;
+        top: 50%;
+        width: 100%;
+        z-index: 1020;
+        text-align: center;
+        transform: translate(0, -50%) scale(2.0, 1);
+      }
+      .copyCodeAppendage{
+        display: inline-block;
+        vertical-align: top;
+      }
+      .copyButton{
+        background-image: url(clippy.svg);
+        background-color: transparent;
+        margin-left: -25px!important;
+      }
+      .toolButton{
         background-repeat: no-repeat;
         background-position: center center;
-        background-size: contain;
-        background-color: transparent;
+        background-size: 35px 35px;
         border: none;
-        width: 30px;
-        height: 30px;
-        padding: 6px;
+        width: 40px;
+        height: 40px;
+        margin: 5px;
         border-radius: 10px;
       }
       .loginInput{
@@ -288,6 +356,7 @@
       .projectList{
         text-align: center;
         overflow-y: hidden;
+        overflow-x: hidden;
       }
       a{
         color: #f80;
@@ -421,7 +490,7 @@
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        margin-top: -2px;
+        margin-top: 4px;
       }
 
       .checkmarkContainer input {
@@ -479,9 +548,10 @@
     <script src="./highlight.js/highlight.min.js"></script>
   </head>
   <body>
+    <div id="copyConfirmation"><div id="innerCopied">COPIED!</div></div>
     <div id="overlay">
       <div id="loginInner">
-        <button class="closeButton" title="close" onclick="closePrompts()">
+        <button class="closeButton" data-customtooltip="close" onclick="closePrompts()">
           X
         </button>
         <br>login<br><br>
@@ -515,7 +585,7 @@
           id="loginButton"
           class="modalButtons navButtons disabledButton"
           onclick="login()"
-          title="login to an existing profile"
+          data-customtooltip="login to an existing profile"
         >
           login
         </button>
@@ -524,6 +594,7 @@
     <div class="header">
       <span
         class="headerTitle"
+        data-customtooltip="go to home page"
         onclick="location.href=location.origin+location.pathname">
         coordocs, better docs
       </span>
@@ -531,7 +602,7 @@
         class="coordocsLogo"
         style="vertical-align: top; float: right; margin-right: 5px;"
         onclick="navToURL('https://github.com/srmcgann/coordocs')"
-        title="visit system repository on Github.com"
+        data-customtooltip="visit system repository on Github.com"
        ></div>
     </div>
     <div class="toolbar">
@@ -551,25 +622,25 @@
         <button
           class="navButtons"
           id="editDocButton"
-          title="edit doc"
+          data-customtooltip="edit doc"
           onclick="toggleEditMode('edit')"
         >edit</button>
         <button
           class="navButtons"
           id="viewDocButton"
-          title="view contents as others will see it"
+          data-customtooltip="view contents as others will see it"
           onclick="toggleEditMode('view')"
         >view</button>
         <div class="vSpc"></div>
         <button
           class="navButtons newDocButton"
           id="newDocButton"
-          title="create a new doc"
+          data-customtooltip="create a new doc"
           onclick="createDoc()"
         >new</button>
       </div>
       <div class="toolbarComponent" style="display: none;">
-        <label class="checkmarkContainer" title="toggle link visibility">
+        <label class="checkmarkContainer" data-customtooltip="toggle link visibility">
           <span id="privateCheckLabel">private</span>
           <input
             id="privacyCheck"
@@ -581,9 +652,10 @@
       </div>
       <div class="toolbarComponent" style="display: none;">
         <button
-          class="deleteButton"
-          id="deleteButton"
-          title="delete this project?"
+          class="toolButton deleteButton"
+          style="background-image: url(delete.png); background-size:(25px, 25px); width: 30px; height: 30px;margin: 3px;"
+          id="toolButton"
+          data-customtooltip="delete this project?"
           onclick="deleteSingleProject()"
         ></button>
       </div>
@@ -591,26 +663,26 @@
         <button
           class="navButtons"
           id="page1Button"
-          title="navigate to first page"
+          data-customtooltip="navigate to first page"
           onclick="navToPage('1')"
         >|&lt;</button>
         <button
           class="navButtons"
           id="pageBackButton"
-          title="go back one page"
+          data-customtooltip="go back one page"
           onclick="navToPage('-1')"
         >&lt;</button>
         <span id="pageNo">0</span>
         <button
           class="navButtons"
           id="pageAdvButton"
-          title="advance one page"
+          data-customtooltip="advance one page"
           onclick="navToPage('+1')"
         >&gt;</button>
         <button
           class="navButtons"
           id="pageLastButton"
-          title="navigate to last page"
+          data-customtooltip="navigate to last page"
           onclick="navToPage('last')"
         >&gt;|</button>
       </div>
@@ -639,7 +711,7 @@
       import * as MarkdownToHTML from "./md2html.js"
     
       var passhash
-      var URLbase = '/coordocs'
+      var URLbase = location.pathname
       var main = document.querySelector('.main')
     
       var passhash   = ''
@@ -673,8 +745,9 @@
         }
       }
 
-      window.LoadProject = (slug, page=1) => {
+      window.LoadProject = (slug, page=1, edit=false) => {
         location.href = updateURL('p', page, false)
+        if(edit) location.href = updateURL('e', 1, false)
         location.href = updateURL('s', slug, true)
       }
       
@@ -690,7 +763,7 @@
           searchField.value = ''
           
           let sendData = { search, userID, passhash }
-          var url = URLbase + '/search.php'
+          var url = URLbase + 'search.php'
           fetch(url, {
             method: 'POST',
             headers: {
@@ -719,7 +792,7 @@
                          class="coordocsLogo"
                          style="vertical-align: middle;"
                          onclick="navToURL('https://github.com/srmcgann/coordocs')"
-                         title="visit system repository on Github.com"
+                         data-customtooltip="visit system repository on Github.com"
                         ></div>
                         found no hits... sorry<br><br>
                       </div>`
@@ -732,6 +805,39 @@
         }
       }
       
+      window.copyB64 = str => {
+        str = atob(str)
+        console.log(str)
+        let copyEl = document.createElement('pre')
+        copyEl.innerHTML = str
+        copyEl.style.opacity = .01
+        copyEl.style.position = 'absolute'
+        document.body.appendChild(copyEl)
+        var range = document.createRange()
+        range.selectNode(copyEl)
+        window.getSelection().removeAllRanges()
+        window.getSelection().addRange(range)
+        document.execCommand("copy")
+        window.getSelection().removeAllRanges()
+        copyEl.remove()
+        let el = document.querySelector('#copyConfirmation')
+        el.style.display = 'block';
+        el.style.opacity = 1
+        let reduceOpacity = () => {
+          if(+el.style.opacity > 0){
+            el.style.opacity -= .02 * 2
+            if(+el.style.opacity<.1){
+              el.style.opacity = 1
+              el.style.display = 'none'
+            }else{
+              setTimeout(()=>{
+                reduceOpacity()
+              }, 10)
+            }
+          }
+        }
+        setTimeout(()=>{reduceOpacity()}, 250)
+      }
       
       const SetCookie = (key, val) => {
         document.cookie = `${key}=${val}; expires=` + (new Date((new Date()).getTime() + 3600*24*365*1000).toUTCString())
@@ -760,7 +866,7 @@
           password,
           passhash: subPasshash
         }
-        var url = URLbase + '/login.php'
+        var url = URLbase + 'login.php'
         fetch(url, {
           method: 'POST',
           headers: {
@@ -847,7 +953,8 @@
           var loggedInNameEl = document.createElement('div')
           loggedInNameEl.className = 'loggedinName'
           loggedInNameEl.innerHTML = userName
-          loggedInNameEl.title = 'go to my projects'
+          loggedInNameEl.setAttribute('data-customtooltip', 'go to my projects')
+          //loggedInNameEl.title = 'go to my projects'
           loggedInNameEl.onclick = () => location.href = 
                 location.href=location.origin+location.pathname
                 
@@ -857,7 +964,8 @@
           avatarEl.style.backgroundImage = `url(${avatar})`
           loginEl.appendChild(avatarEl)
           var logoutButton = document.createElement('button')
-          logoutButton.title = 'logout'
+          logoutButton.setAttribute('data-customtooltip', 'logout')
+          //logoutButton.title = 'logout'
           logoutButton.className = 'authButtons'
           logoutButton.onclick = window.Logout
           logoutButton.innerHTML = 'logout'
@@ -867,12 +975,14 @@
           loginButton.className = 'authButtons'
           loginButton.onclick = () => showPrompt('login')
           loginButton.innerHTML = 'login'
-          loginButton.title = 'login to an existing profile'
+          loginButton.setAttribute('data-customtooltip', 'login to an existing profile')
+          //loginButton.title = 'login to an existing profile'
           loginEl.appendChild(loginButton)
           var registerButton = document.createElement('button')
           registerButton.className = 'authButtons'
           registerButton.id = 'regButton'
-          registerButton.title = 'create a new profile'
+          registerButton.setAttribute('data-customtooltip', 'create a new profile')
+          //registerButton.title = 'create a new profile'
           registerButton.onclick = window.Register
           registerButton.innerHTML = 'register'
           loginEl.appendChild(registerButton)
@@ -906,11 +1016,13 @@
         deleteProject(slug, curPageName)
       }
       
+      window.editProject = (slug, name) => LoadProject(slug, page=1, true)
+      
       window.deleteProject = (slug, name) => {
         var response = prompt('delete this project? -> ' + name + "\n>>> THIS IS IRREVERSIBLE <<<\ntype 'yes' to confirm")
         if(response == 'yes'){
           let sendData = { slug, userID, passhash }
-          var url = URLbase + '/deleteProject.php'
+          var url = URLbase + 'deleteProject.php'
           fetch(url, {
             method: 'POST',
             headers: {
@@ -937,7 +1049,7 @@
                    class="coordocsLogo"
                    style="vertical-align: middle;"
                    onclick="navToURL('https://github.com/srmcgann/coordocs')"
-                   title="visit system repository on Github.com"
+                   data-customtooltip="visit system repository on Github.com"
                   ></div>
                   is a markdown prettifier, with pages<br><br>
                   <ol style="text-align: left;">
@@ -1009,7 +1121,7 @@
       var slug            = GetURLParam('s')
       var page            = GetURLParam('p')
       var highlight       = GetURLParam('h')
-      var viewMode        = 'view'
+      var viewMode        = GetURLParam('e') ? 'edit' : 'view'
       var projectUserName = ''
       var html            = ''
       var curPageName = ''
@@ -1018,7 +1130,7 @@
       const GetPageData = () => {
         projectUserName= ''
         let sendData = { passhash, userID, slug, page }
-        var url = URLbase + '/getPageData.php'
+        var url = URLbase + 'getPageData.php'
         fetch(url, {
           method: 'POST',
           headers: {
@@ -1056,6 +1168,7 @@
       
       
       window.toggleEditMode = (mode, forceReload=false, fromNewButton=false) => {
+        if(mode == 'view') updateURL('e', '')
         if(slug && projectUserName == userName){
           switch(mode){
             case 'edit':
@@ -1100,7 +1213,7 @@
       
       window.createDoc = () => {
         let sendData = { userID, passhash }
-        var url = URLbase + '/createProject.php'
+        var url = URLbase + 'createProject.php'
         fetch(url, {
           method: 'POST',
           headers: {
@@ -1122,7 +1235,7 @@
           
           var checkbox = document.querySelector('#privacyCheck')
           checkbox.parentNode.parentNode.style.display = 'inline-block'
-          document.querySelector('#deleteButton').parentNode.style.display = 'inline-block'
+          document.querySelector('#toolButton').parentNode.style.display = 'inline-block'
           checkbox.checked = !!(+data.private)
           document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
           
@@ -1136,7 +1249,7 @@
       
       window.togglePrivate = checkbox => {
         let sendData = { slug, userID, passhash, private: checkbox.checked }
-        var url = URLbase + '/updatePrivacy.php'
+        var url = URLbase + 'updatePrivacy.php'
         fetch(url, {
           method: 'POST',
           headers: {
@@ -1152,7 +1265,7 @@
       window.updateProjectName = name => {
         if(slug && projectUserName == userName){
           let sendData = { slug, userID, passhash, name }
-          var url = URLbase + '/updateProjectName.php'
+          var url = URLbase + 'updateProjectName.php'
           fetch(url, {
             method: 'POST',
             headers: {
@@ -1191,7 +1304,7 @@
         html = textEditor.value
         
         let sendData = { slug, userID, passhash, data: html }
-        var url = URLbase + '/updateProjectData.php'
+        var url = URLbase + 'updateProjectData.php'
         fetch(url, {
           method: 'POST',
           headers: {
@@ -1284,7 +1397,7 @@
           document.querySelector('#screenName').style.color = projectUserName == userName ? '#4f8' : '#aaa'
           if(loggedin){
             if(projectUserName == userName){
-              document.querySelector('#deleteButton').parentNode.style.display = 'inline-block'
+              document.querySelector('#toolButton').parentNode.style.display = 'inline-block'
             }
             document.querySelector('#newDocButton').parentNode.style.display = 'inline-block'
             document.querySelector('.checkmarkContainer').parentNode.style.display = 'inline-block'
@@ -1318,4 +1431,6 @@
     </script>
   </body>
 </html>
+
+
 

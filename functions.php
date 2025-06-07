@@ -197,11 +197,20 @@
                  <div class=\"projectTools\">";
       if($sanUID == $hit['userID']){
         $ret .= "<button
-                   class=\"deleteButton\"
-                   title=\"delete this project? -> {$hit['name']}\"
+                   class=\"toolButton editButton\"
+                   style=\"background-image: url(edit.png)\"
+                   data-customtooltip=\"edit -> {$hit['name']}\"
+                   onclick=\"editProject('{$hit['slug']}',
+                                           '{$hit['name']}')\"
+                 ></button>
+                 <button
+                   class=\"toolButton deleteButton\"
+                   style=\"background-image: url(delete.png)\"
+                   data-customtooltip=\"delete -> {$hit['name']}\"
                    onclick=\"deleteProject('{$hit['slug']}',
                                            '{$hit['name']}')\"
-                 ></button>";
+                 ></button>
+                 ";
       }
       $ret .= "</div>
                  <button
@@ -212,7 +221,7 @@
                  <button
                    class=\"projectAvatar\"
                    style=\"background-image: url($bg);\"
-                   title=\"user: $un\"
+                   data-customtooltip=\"user: $un\"
                  ></button><br>
                  <span class=\"userName\">{$hit['userName']}</span>
                </div><br>
@@ -314,11 +323,20 @@
         $ret .= "<div class=\"projectMenuItem\">
                   <div class=\"projectTools\">";
         $ret .=   "<button
-                     class=\"deleteButton\"
-                     title=\"delete this project? -> {$project['name']}\"
+                     class=\"toolButton editButton\"
+                     style=\"background-image: url(edit.png)\"
+                     data-customtooltip=\"edit -> {$project['name']}\"
+                     onclick=\"editProject('{$project['slug']}',
+                                             '{$project['name']}')\"
+                   ></button>
+                   <button
+                     class=\"toolButton deleteButton\"
+                     style=\"background-image: url(delete.png)\"
+                     data-customtooltip=\"delete -> {$project['name']}\"
                      onclick=\"deleteProject('{$project['slug']}',
                                              '{$project['name']}')\"
-                   ></button></div>";
+                   ></button>
+                   </div>";
         
         $ret .=   "<button
                     class=\"projectButton\"
@@ -328,12 +346,12 @@
                      <button
                        class=\"projectAvatar\"
                        style=\"background-image: url({$project['avatar']});\"
-                       title=\"user: {$project['user']}\"
+                       data-customtooltip=\"user: {$project['user']}\"
                      ></button><br>
                      <span class=\"userName\">{$project['user']}</span>
                    </div><br>";
                    
-        $pvt = '<font style="color:'.($project['private']?'#f02;">true':'#2f8;">false').'</font>';
+        $pvt = '<font style="color:'.($project['private']?'#f02;">private':'#2f8;">public').'</font>';
         $ret .="<div class=\"projectDetails\">
                  <table class=\"projectDetailsTable\">
                    <tr>
@@ -353,7 +371,7 @@
                      <td class=\"projectDetailItem\">{$project['created']}</td>
                    </tr>
                    <tr>
-                     <td class=\"projectDetailLabel\">private</td>
+                     <td class=\"projectDetailLabel\">visibility</td>
                      <td class=\"projectDetailItem\">$pvt</td>
                    </tr>
                  </table></div>";
@@ -651,6 +669,7 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
+
 
 
 
