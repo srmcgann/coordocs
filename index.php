@@ -8,9 +8,10 @@
   ✔ page break syntax for markdown
   ✔ delete button on doc itself, plus list page
   ✔ search function
-  * copy button @ all code blocks
-  * registration
-  * user profile settings screen, w/ avatar, password change, etc.
+  ✔ copy button @ all code blocks
+  ✔ highlighting / remove highlighting
+  ✔ registration
+  * user profile settings screen, w/ avatar, password change, delete acct, etc.
   * theme selector
 -->
 <?php
@@ -94,10 +95,10 @@
         border-radius: 5px;
       }
       .toolbarComponent{
-        border-radius: 24px;
-        background: #002;
+        border-radius: 10px;
+        background: #000;
         height: 35px;
-        border: 1px solid #82f4;
+        /* border: 1px solid #82f4; */
         display: inline-block;
         vertical-align: top;
         position: relative;
@@ -119,6 +120,12 @@
       [data-customtooltip] {
         position: relative;
         cursor: help;
+      }
+      [data-customtooltip].hideTooltips{
+        cursor: pointer!important;
+      }
+      [data-customtooltip].hideTooltips::after{
+        display: none!important;
       }
       [data-customtooltip]::after{
         position: absolute;
@@ -159,7 +166,7 @@
         position: fixed;
         font-size: 16px;
         padding-top: 2px;
-        background: #000;
+        background: #111;
         text-align: left;
       }
       .enabledButton{
@@ -168,9 +175,11 @@
       }
       .disabledButton{
         background: #333!important;
+        text-shadow: 0 0 8px #fff!important;
         color: #111;
       }
       .navButtons{
+        text-shadow: 0 0 8px #4f8;
         border-radius: 10px;
         background: #222;
         width: 50px;
@@ -184,17 +193,17 @@
         margin-right: 0;
       }
       #pageNo{
-        font-size: 12px;
+        font-size: 13px;
         min-width: 90px;
         display: inline-block;
-        vertical-align: middle;
+        vertical-align: sub;
+        
       }
       .textInput:focus{
         outline: none;
       }
       .headerTitle{
         margin-top: 2px;
-        cursor: pointer;
         background: #4f84;
         padding-left: 5px;
         padding-right: 5px;
@@ -220,7 +229,7 @@
         border-radius: 50%;
         border: none;
         background-color: #222;
-        background-size: contain;
+        background-size: cover;
         background-repeat: no-repeat;
         background-position: center center;
       }
@@ -326,17 +335,23 @@
         text-align: left!important;
         min-width: 300px;
       }
+      .passwordChangeInput{
+        float: right;
+        text-align: left!important;
+        min-width: 200px;
+      }
       .textInput{
         font-size: 16px;
         text-align: center;
-        background: #000;
+        background: #004;
         color: #4f8;
-        border-radius: 5px;
-        border: 1px solid #fff1;
+        /* border-radius: 5px; */
+        border: none;
         padding-left: 5px;
         padding-right: 5px;
         vertical-align: middle;
         display: inline-block;
+        border-bottom: 1px solid #00f;
       }
       blockquote{
         border-left: 5px solid #888;
@@ -365,6 +380,11 @@
       a:visited{
         color: #804;
       }
+      #updatePasswordError{
+        display: none;
+        position: absolute;
+        width: 300px;
+      }
       #overlay{
         display: none;
         position: fixed;
@@ -376,7 +396,7 @@
         background: #001d;
         z-index: 1000;
       }
-      #loginInner{
+      #loginInner, #regInner, #prefs{
         display: none;
         position: fixed;
         top: 50%;
@@ -385,7 +405,7 @@
         border-radius: 5px;
         border: 1px solid #4f82;
         width: 500px;
-        height: 220px;
+        height: 250px;
         background: #103;
         text-align: center;
         padding: 10px;
@@ -437,13 +457,12 @@
         border: 1px solid #4f84;
         display: inline-block;
         vertical-align: middle;
-        cursor: pointer;
       }
       .avatar{
         width: 40px;
         height: 30px;
         background-position: center center;
-        background-size: contain;
+        background-size: cover;
         background-color: #000;
         background-repeat: no-repeat;
         border-radius: 10px;
@@ -458,11 +477,25 @@
         width 2px;
         height: 36px;
         display: inline-block;
-        background: #82f4;
+        background: #111;
         vertical-align: middle;
         width: 2px;
       }
-      #loginError{
+      #regUsernameError{
+        display: none;
+        font-size: 20px;
+        position: absolute;
+        width: 100%;
+      }
+      .nameAvailable{
+        color: #4f48;
+      }
+      .nameTaken{
+        color: #f448;
+      }
+      #loginError, #regError{
+        position: absolute;
+        width: 100%;
         display: none;
         color: #f44;
         font-size: 20px;
@@ -482,10 +515,8 @@
         display: inline-block;
         position: relative;
         padding-left: 35px;
-        cursor: pointer;
         vertical-align: middle;
         line-height: 24px;
-        font-size: 22px;
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
@@ -496,7 +527,6 @@
       .checkmarkContainer input {
         position: absolute;
         opacity: 0;
-        cursor: pointer;
         height: 0;
         width: 0;
       }
@@ -510,6 +540,18 @@
         background-color: #021;
         border-radius: 5px;
         border: 1px solid #042;
+      }
+      
+      #mainAvatar{
+        display: inline-block;
+        float: left;
+        width: 200px;
+        height: 200px;
+        border: 1px solid #fff1;
+        border-radius: 25%;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center center;
       }
 
       .checkmarkContainer:hover input ~ .checkmark {
@@ -550,6 +592,69 @@
   <body>
     <div id="copyConfirmation"><div id="innerCopied">COPIED!</div></div>
     <div id="overlay">
+      <div id="prefs">
+        <button class="closeButton" data-customtooltip="close" onclick="closePrompts()">
+          X
+        </button>
+        <div id="mainAvatar">
+        </div>
+        <div style="float: left; display: inline-block; width: 290px;">
+          <input
+            maxlength="128"
+            type="password"
+            id="oldPassword"
+            style="font-size: 12px;"
+            spellcheck="false"
+            placeholder="old password"
+            class="textInput newPasswordInput"
+          /><br><br>
+          <input
+            maxlength="128"
+            type="password"
+            id="newPassword"
+            style="font-size: 12px;"
+            oninput="updatePasswordInput()"
+            spellcheck="false"
+            placeholder="new password"
+            class="textInput newPasswordInput"
+          /><br><br>
+          <input
+            maxlength="128"
+            type="password"
+            id="confirmNewPassword"
+            oninput="updatePasswordInput(this)"
+            style="font-size: 12px;"
+            spellcheck="false"
+            placeholder="confirm new password"
+            class="textInput newPasswordInput"
+          /><br>
+          <div id="updatePasswordError"></div>
+          <br><br>
+          <button
+            id="updatePasswordButton"
+            class="modalButtons navButtons disabledButton"
+            style="width: 166px"
+            onclick="updatePassword()"
+            data-customtooltip="login to an existing profile"
+          >
+            update password
+          </button>
+        </div>
+        <div style="clear:both;"></div>
+        <br>
+        <div style="text-align: left;font-size:14px;padding-left: 62px;">
+          my avatar
+        </div>
+        <input
+          maxlength="2048"
+          id="avatarLink"
+          style="width: calc(100% - 10px); font-size: 12px;"
+          spellcheck="false"
+          oninput="updateAvatar(this)"
+          placeholder="avatar"
+          class="textInput loginInput"
+        />
+      </div>
       <div id="loginInner">
         <button class="closeButton" data-customtooltip="close" onclick="closePrompts()">
           X
@@ -580,7 +685,7 @@
           </label>
         </div><br>
         <div id="loginError">bad username or password</div>
-        <br>
+        <br><br>
         <button
           id="loginButton"
           class="modalButtons navButtons disabledButton"
@@ -590,6 +695,63 @@
           login
         </button>
       </div>
+      
+      <!--        registration section        -->
+      <div id="regInner">
+        <button class="closeButton" data-customtooltip="close" onclick="closePrompts()">
+          X
+        </button>
+        <br>register<br><br>
+        <div class="loginSection">
+          <label for="regUserName" class="loginLabel">
+            user name
+            <input
+              maxlength="64"
+              id="regUserName"
+              spellcheck="false"
+              onkeyup="regInput(event)"
+              placeholder="user name"
+              class="textInput loginInput"
+            />
+          </label><br>
+          <div id="regUsernameError"></div>
+          <br><br>
+          <label for="regPassword" class="loginLabel">
+            password 
+            <input
+              maxlength="128"
+              id="regPassword"
+              type="password"
+              onkeyup="regInput(event)"
+              placeholder="password"
+              class="textInput loginInput"
+            />
+            <br><br>
+            confirm 
+            <input
+              maxlength="128"
+              id="regConfirmPassword"
+              type="password"
+              onkeyup="regInput(event)"
+              placeholder="password"
+              class="textInput loginInput"
+            />
+          </label>
+        </div><br>
+        <div id="regError"></div>
+        <br>
+        <button
+          id="regButton"
+          class="modalButtons navButtons disabledButton"
+          onclick="submitReg()"
+          data-customtooltip="submit these credentials"
+        >
+          submit
+        </button>
+      </div>
+      
+      <!---------------------------------------->
+      
     </div>
     <div class="header">
       <span
@@ -606,7 +768,11 @@
        ></div>
     </div>
     <div class="toolbar">
-      <div class="toolbarComponent">
+      <div
+        class="toolbarComponent"
+        style="padding-top:7px; height:28px;"
+        data-customtooltip="the title of the item(s) featured here"
+      >
         <label for="screenName">
           <span class="loginLabel">this doc</span>
           <input
@@ -639,7 +805,11 @@
           onclick="createDoc()"
         >new</button>
       </div>
-      <div class="toolbarComponent" style="display: none;">
+      <div
+        class="toolbarComponent"
+        style="display: none;"
+        style="min-width: 100px; text-align: left;"
+      >
         <label class="checkmarkContainer" data-customtooltip="toggle link visibility">
           <span id="privateCheckLabel">private</span>
           <input
@@ -653,7 +823,7 @@
       <div class="toolbarComponent" style="display: none;">
         <button
           class="toolButton deleteButton"
-          style="background-image: url(delete.png); background-size:(25px, 25px); width: 30px; height: 30px;margin: 3px;"
+          style="background-image: url(delete.png); background-size: 25px 25px; width: 30px; height: 30px;margin: 3px;"
           id="toolButton"
           data-customtooltip="delete this project?"
           onclick="deleteSingleProject()"
@@ -686,7 +856,11 @@
           onclick="navToPage('last')"
         >&gt;|</button>
       </div>
-      <div class="toolbarComponent">
+      <div
+        class="toolbarComponent"
+        style="padding-top:2px; height: 33px;"
+        data-customtooltip="search your projects and public projects"
+      >
         <label for="searchField">
           <div class="icon" style="background-image: url(search.png);"></div>
           <input
@@ -694,6 +868,7 @@
             type="text"
             class="textInput"
             id="searchField"
+            autofocus
             placeholder="search for something"
             spellcheck="false"
             onkeyup="searchMaybe(event)"
@@ -703,7 +878,35 @@
       <div class="toolbarComponent">
         <div id="loginContainer"></div>
       </div>
-
+      <div
+        class="toolbarComponent"
+        id="tooltipsContainer"
+        style="min-width: 132px; text-align: left;"
+      >
+        <label class="checkmarkContainer" data-customtooltip="toggle tooltips @ hover">
+          <span id="tooltipCheckLabel">show tooltips</span>
+          <input
+            id="tooltipCheck"
+            type="checkbox"
+            checked
+            oninput="toggleTooltips(this)"
+          />
+          <span class="checkmark"></span>
+        </label>
+      </div>
+      <div
+        class="toolbarComponent"
+        id="removeHighlightingContainer"
+        style="display: none;"
+      >
+        <button
+          style="background: #8f4; min-width: 132px; font-size: 14px;"
+          class="modalButtons navButtons"
+          id="removeHighlightingButton"
+          data-customtooltip="remove the highlighting from search"
+          onclick="removeHighlighting()"
+        >remove highlighting</button>
+      </div>
       <div class="main"></div>
     </div>
 
@@ -718,6 +921,7 @@
       var userID     = ''
       var userName   = ''
       var avatar     = ''
+      var tooltips   = true
       var loggedin   = false
 
       window.navToURL = url => {
@@ -758,7 +962,6 @@
           slug = ''
           page = ''
           var search = searchField.value
-          console.log('searching for: ', search)
           updateURL('h', encodeURIComponent(search))
           searchField.value = ''
           
@@ -771,7 +974,6 @@
             },
             body: JSON.stringify(sendData),
           }).then(res => res.json()).then(data => {
-            console.log('search data', data)
             if(data.success){
               html = data.html
               
@@ -807,7 +1009,6 @@
       
       window.copyB64 = str => {
         str = atob(str)
-        console.log(str)
         let copyEl = document.createElement('pre')
         copyEl.innerHTML = str
         copyEl.style.opacity = .01
@@ -847,16 +1048,31 @@
         document.cookie = `${key}=${val}; expires=` + (new Date(0).toUTCString())
       }
       
-      
+      const ModifyTooltipVisibility = () => {
+        const maxDepth = 10
+        const recurseElements = (el, depth=0) => {
+          if(depth >= maxDepth) return
+          if((typeof el.hasAttribute == 'function') &&
+               el.hasAttribute('data-customtooltip')){
+            el.classList[tooltips ? 'remove' : 'add']('hideTooltips')
+            el.style.cursor = tooltips ? 'help!important' : 'pointer!important'
+          }
+          el.childNodes.forEach( node => recurseElements(node, depth+1) )
+        }
+        recurseElements(document.body)
+      }
+
       const UpdateCookie = () => { 
         SetCookie('passhash', passhash)
         SetCookie('userName', userName)
+        SetCookie('tooltips', tooltips)
         SetCookie('avatar', avatar)
       }
 
       const ClearCookie = () => { 
         DelCookie('passhash', passhash)
         DelCookie('userName', userName)
+        DelCookie('tooltips', tooltips)
         DelCookie('avatar', avatar)
       }
       
@@ -879,23 +1095,170 @@
             userID   = data.userID
             avatar   = data.avatar
             html     = data.data
+            tooltips = !!(+data.tooltips)
             loggedin = true
             UpdateCookie()
             closePrompts()
           } else {
             loggedin = false
             passhash = ''
+            tooltips = true
             userName = ''
             avatar   = ''
             if(password){
-              document.querySelector('#loginError').style.display = 'inline-block'
+              document.querySelector('#loginError').style.display = 'block'
             }
           }
           UpdateLoginWidget()
           GetPageData()
+          var checkbox = document.querySelector('#tooltipCheck')
+          checkbox.checked = tooltips
+          document.querySelector('#tooltipCheckLabel').innerHTML = checkbox.checked ? 'tooltips' : 'no tooltips'
         })
       }
+
+      var uAvail = false
+      const ValidateRegistration = pass => uAvail && pass.length >= 3
+
+      window.updatePassword = () => {
+        var newPassword = document.querySelector('#newPassword').value
+        var oldPassword = document.querySelector('#oldPassword').value
+        var confirmNewPassword = document.querySelector('#confirmNewPassword').value
+        var newPasswordErrorEl = document.querySelector('#updatePasswordError')
+        if(confirmNewPassword.length >= 3 && newPassword.length >= 3){
+          if(confirmNewPassword == newPassword){
+            let sendData = { userID, passhash, oldPassword, newPassword}
+            var url = URLbase + 'updatePassword.php'
+            fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(sendData),
+            }).then(res => res.json()).then(data => {
+              if(data.success){
+                passhash = data.passhash
+              }else{
+                alert('there was an error updating the password!')
+              }
+            })
+          }
+        }
+      }
       
+      window.submitReg = () => {
+        var regPassword = document.querySelector('#regPassword').value
+        if(ValidateRegistration(regPassword)){
+          var regUserName = document.querySelector('#regUserName').value
+          let sendData = { regUserName, regPassword }
+          var url = URLbase + 'register.php'
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData),
+          }).then(res => res.json()).then(data => {
+            if(data.success){
+              
+              passhash = data.passhash
+              userID   = data.userID
+              avatar   = data.avatar
+              html     = data.data
+              tooltips = !!(+data.tooltips)
+              loggedin = true
+              UpdateCookie()
+              closePrompts()
+              
+              document.querySelector('#userName').value = regUserName
+              document.querySelector('#password').value = regPassword
+              window.login()
+
+            }else{
+              alert('there was an error registering!')
+            }
+          })          
+        }else{
+          console.log('registration was not validated')
+        }
+      }
+      
+      window.regInput = e => {
+        if(e.keyCode == 27){
+          closePrompts()
+        }
+        var regButton = document.querySelector('#regButton')
+        var userNameField = document.querySelector('#regUserName')
+        var passwordField = document.querySelector('#regPassword')
+        var confirmPasswordField = document.querySelector('#regConfirmPassword')
+        uAvail = false
+        if(userNameField.value){
+
+          // check user name availability
+          let sendData = { regUserName: userNameField.value }
+          var url = URLbase + 'nameIsAvailable.php'
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData),
+          }).then(res => res.json()).then(data => {
+            document.querySelector('#regUsernameError').style.display = 'block'
+            document.querySelector('#regUsernameError').innerHTML = data
+          })
+        }else{
+          document.querySelector('#regUsernameError').style.display = 'none'
+        }
+        if(userNameField.value &&
+           passwordField.value &&
+           confirmPasswordField.value){
+          uAvail = true
+        } else{
+          regButton.className = 'modalButtons navButtons disabledButton'
+        }
+        if(passwordField.value){
+          if(passwordField.value != confirmPasswordField.value){
+            document.querySelector('#regError').style.display = 'block'
+            document.querySelector('#regError').style.color = '#f448'
+            document.querySelector('#regError').innerHTML = 'passwords don\'t match'
+            regButton.className = 'modalButtons navButtons disabledButton'
+          }else{
+            document.querySelector('#regError').style.display = 'block'
+            document.querySelector('#regError').style.color = '#4f48'
+            document.querySelector('#regError').innerHTML = 'passwords match'
+            if(userNameField.value && uAvail){
+              regButton.className = 'modalButtons navButtons enabledButton'
+              if(e.keyCode == 13){
+                userName = userNameField.value
+                window.submitReg()
+              }
+            }else{
+              regButton.className = 'modalButtons navButtons disabledButton'
+            }
+          }
+        }
+      }
+
+      window.updatePasswordInput = () => {
+        var newPassword = document.querySelector('#newPassword').value
+        var confirmNewPassword = document.querySelector('#confirmNewPassword').value
+        var newPasswordErrorEl = document.querySelector('#updatePasswordError')
+        if(confirmNewPassword.length >= 3 && newPassword.length >= 3){
+          newPasswordErrorEl.style.display = 'block'
+          if(confirmNewPassword == newPassword){
+            newPasswordErrorEl.style.color = '#4f48'
+            newPasswordErrorEl.innerHTML = 'passwords match'
+          }else{
+            newPasswordErrorEl.style.color = '#f448'
+            newPasswordErrorEl.innerHTML = 'passwords don\'t match'
+            console.log("passwords don't match")
+          }
+        }else{
+          newPasswordErrorEl.style.display = 'none'
+        }
+      }
+
       window.login = () => {
         var passwordField = document.querySelector('#password')
         SubmitLogin(passwordField.value)
@@ -939,11 +1302,16 @@
             document.querySelector('#loginInner').style.display = 'block'
             document.querySelector('#userName').focus()
           break
+          case 'register':
+            document.querySelector('#regInner').style.display = 'block'
+            document.querySelector('#regUserName').focus()
+          break
+          case 'prefs':
+            document.querySelector('#prefs').style.display = 'block'
+            document.querySelector('#avatarLink').value = avatar
+            document.querySelector('#avatarLink').focus()
+          break
         }
-      }
-
-      window.Register = () => {
-        console.log('registering...')
       }
 
       const UpdateLoginWidget = () => {
@@ -954,18 +1322,20 @@
           loggedInNameEl.className = 'loggedinName'
           loggedInNameEl.innerHTML = userName
           loggedInNameEl.setAttribute('data-customtooltip', 'go to my projects')
-          //loggedInNameEl.title = 'go to my projects'
           loggedInNameEl.onclick = () => location.href = 
                 location.href=location.origin+location.pathname
                 
           loginEl.appendChild(loggedInNameEl)
           var avatarEl = document.createElement('div')
+          avatarEl.setAttribute('data-customtooltip', 'magage your preferences')
+          document.querySelector('#mainAvatar').style=`background-image: url(${avatar})`
+          avatarEl.onclick = () => showPrompt('prefs')
           avatarEl.className = 'avatar'
+          avatar
           avatarEl.style.backgroundImage = `url(${avatar})`
           loginEl.appendChild(avatarEl)
           var logoutButton = document.createElement('button')
           logoutButton.setAttribute('data-customtooltip', 'logout')
-          //logoutButton.title = 'logout'
           logoutButton.className = 'authButtons'
           logoutButton.onclick = window.Logout
           logoutButton.innerHTML = 'logout'
@@ -976,14 +1346,12 @@
           loginButton.onclick = () => showPrompt('login')
           loginButton.innerHTML = 'login'
           loginButton.setAttribute('data-customtooltip', 'login to an existing profile')
-          //loginButton.title = 'login to an existing profile'
           loginEl.appendChild(loginButton)
           var registerButton = document.createElement('button')
           registerButton.className = 'authButtons'
           registerButton.id = 'regButton'
           registerButton.setAttribute('data-customtooltip', 'create a new profile')
-          //registerButton.title = 'create a new profile'
-          registerButton.onclick = window.Register
+          registerButton.onclick = () => showPrompt('register')
           registerButton.innerHTML = 'register'
           loginEl.appendChild(registerButton)
         }
@@ -994,21 +1362,28 @@
         document.querySelector('#pageNo').innerHTML = `page<br>${CurPage()} of ${totalPages()+1}`
         
         document.querySelector('#page1Button').style.background = CurPage() > 1 ? 
-                                                 '#4f8' : '#333'
+                                                 '#142' : '#333'
         document.querySelector('#page1Button').style.color = CurPage() > 1 ? 
-                                                 '#032' : '#111'
+                                                 '#4f8' : '#111'
+        document.querySelector('#page1Button').style.textShadow = CurPage() > 1 ? 
+                                                 '0 0 8px #4f8' : '0 0 8px #fff'
         
         document.querySelector('#pageBackButton').style.background = CurPage() > 1 ? 
-                                                 '#4f8' : '#333'
+                                                 '#142' : '#333'
         document.querySelector('#pageBackButton').style.color = CurPage() > 1 ? 
-                                                 '#032' : '#111'
+                                                 '#4f8' : '#111'
+        document.querySelector('#pageBackButton').style.textShadow = CurPage() > 1 ? 
+                                                 '0 0 8px #4f8' : '0 0 8px #fff'
         
         
-        document.querySelector('#pageAdvButton').style.background = CurPage() < totalPages() + 1 ? '#4f8' : '#333'
-        document.querySelector('#pageAdvButton').style.color = CurPage() < totalPages() + 1 ? '#032' : '#111'
+        document.querySelector('#pageAdvButton').style.background = CurPage() < totalPages() + 1 ? '#142' : '#333'
+        document.querySelector('#pageAdvButton').style.color = CurPage() < totalPages() + 1 ? '#4f8' : '#111'
+        document.querySelector('#pageAdvButton').style.textShadow = CurPage() < totalPages() + 1 ? '0 0 8px #4f8' : '0 0 8px #fff'
         
-        document.querySelector('#pageLastButton').style.background = CurPage() < totalPages() + 1 ? '#4f8' : '#333'
-        document.querySelector('#pageLastButton').style.color = CurPage() < totalPages() + 1 ? '#032' : '#111'
+        document.querySelector('#pageLastButton').style.background = CurPage() < totalPages() + 1 ? '#142' : '#333'
+        document.querySelector('#pageLastButton').style.color = CurPage() < totalPages() + 1 ? '#4f8' : '#111'
+        document.querySelector('#pageLastButton').style.textShadow = CurPage() < totalPages() + 1 ? '0 0 8px #4f8' : '0 0 8px #fff'
+
         document.querySelector('#pageNo').parentNode.style.display = totalPages() > 0 ? 'inline-block' : 'none'
       }
 
@@ -1157,7 +1532,7 @@
           curPageName = data.name
 
           projectUserName = data.userName
-          
+          document.querySelector('#tooltipsContainer').style.display = loggedin ? 'inline-block' : 'none'
           var checkbox = document.querySelector('#privacyCheck')
           checkbox.checked = !!(+data.private)
           document.querySelector('#privateCheckLabel').innerHTML = checkbox.checked ? 'private' : 'public'
@@ -1177,7 +1552,9 @@
               document.querySelector('#editDocButton').style.color = '#021'
               document.querySelector('#viewDocButton').style.color = '#2f8'
               document.querySelector('#editDocButton').style.boxShadow = '0 0 3px #40f'
+              document.querySelector('#editDocButton').style.textShadow = '0 0 8px #4f8'
               document.querySelector('#viewDocButton').style.boxShadow = 'none'
+              document.querySelector('#viewDocButton').style.textShadow = '0 0 8px #fff'
             break
             case 'view':
               document.querySelector('#editDocButton').style.background = '#252'
@@ -1185,7 +1562,9 @@
               document.querySelector('#editDocButton').style.color = '#2f8'
               document.querySelector('#viewDocButton').style.color = '#021'
               document.querySelector('#editDocButton').style.boxShadow = 'none'
+              document.querySelector('#editDocButton').style.textShadow = '0 0 8px #fff'
               document.querySelector('#viewDocButton').style.boxShadow = '0 0 3px #40f'
+              document.querySelector('#viewDocButton').style.textShadow = '0 0 8px #4f8'
             break
           }
           if(viewMode != mode || forceReload){
@@ -1206,6 +1585,8 @@
           document.querySelector('#viewDocButton').style.color = '#111'
           document.querySelector('#editDocButton').style.boxShadow = 'none'
           document.querySelector('#viewDocButton').style.boxShadow = 'none'
+          document.querySelector('#editDocButton').style.textShadow = '0 0 8px #fff'
+          document.querySelector('#viewDocButton').style.textShadow = '0 0 8px #fff'
           document.querySelector('#privacyCheck').parentNode.parentNode.style.display='none'
         }
         document.querySelector('.main').style.textAlign = slug ? 'left' : 'center'
@@ -1262,9 +1643,51 @@
         })
       }
       
+      window.removeHighlighting= checkbox => {
+        updateURL('h', '')
+        location.reload()
+      }
+      
+      window.toggleTooltips = checkbox => {
+        let sendData = { slug, userID, passhash, tooltips: checkbox.checked }
+        var url = URLbase + 'updateTooltips.php'
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sendData),
+        }).then(res => res.json()).then(data => {
+          if(!data.success) checkbox.checked = !checkbox.checked
+          document.querySelector('#tooltipCheckLabel').innerHTML = checkbox.checked ? 'tooltips' : 'no tooltips'
+          tooltips = checkbox.checked
+          SetCookie('tooltips', tooltips)
+          ModifyTooltipVisibility()
+        })
+      }
+      
+      window.updateAvatar = input => {
+        var avatarURL = input.value
+        if(avatarURL){
+          let sendData = {userID, passhash, avatar: avatarURL}
+          var url = URLbase + 'updateAvatar.php'
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendData),
+          }).then(res => res.json()).then(data => {
+            if(data.success){
+              avatar = avatarURL
+              document.querySelector('#mainAvatar').style=`background-image: url(${avatar})`
+            }
+          })
+        }
+      }
+      
       window.updateProjectName = name => {
         if(slug && projectUserName == userName){
-          let sendData = { slug, userID, passhash, name }
           var url = URLbase + 'updateProjectName.php'
           fetch(url, {
             method: 'POST',
@@ -1292,6 +1715,7 @@
           switch(pair[0]){
             case 'passhash': passhash = pair[1]; break
             case 'userName': userName = pair[1]; break
+            case 'tooltips': tooltips = !!eval(pair[1]); break
             case 'userID': userID = pair[1]; break
             case 'avatar': avatar = pair[1]; break
           }
@@ -1338,6 +1762,7 @@
             var dh = ''
             if(highlight) {
               dh = decodeURIComponent(highlight)
+              document.querySelector('#removeHighlightingContainer').style.display = 'inline-block'
             }
             
             var htmlObj = success ? 
@@ -1375,7 +1800,6 @@
             mainEl.style.padding = '10px'
             mainEl.style.maxHeight = 'calc(100vh - 215px)';
             mainEl.style.paddingBottom = '100px'
-            //totalPages() = htmlObj.totalPages ? htmlObj.totalPages : totalPages()
             if(success) hljs.highlightAll()
             document.querySelector('#pageNo').parentNode.style.display = totalPages() > 1 ? 'inline-block' : 'none'
             if(highlight){
@@ -1424,6 +1848,7 @@
         }
         UpdateNavWidget()
         toggleEditMode(viewMode)
+        ModifyTooltipVisibility()
       }
       
       CheckLogin()
@@ -1431,6 +1856,7 @@
     </script>
   </body>
 </html>
+
 
 
 

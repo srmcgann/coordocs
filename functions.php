@@ -57,6 +57,18 @@
     return ['success' => $success];
   }
 
+  function updateTooltips($tooltips, $userID, $passhash){
+    global $link;
+    $success = false;
+    if(authed($userID, $passhash)){
+      $sanTooltips = intval($tooltips);
+      $sanUID  = intval($userID);
+      $sql = "UPDATE users SET tooltips = $sanTooltips WHERE id = $sanUID";
+      $success = mysqli_query($link, $sql);
+    }
+    return ['success' => $success, 'tooltips' => $tooltips];
+  }
+
   function pageMetaData() {
     global $link;
     $page = 0;
@@ -390,11 +402,13 @@
     $ret = false;
     $sanUserName  = mysqli_real_escape_string($link, $userName);
     $avatar       = '';
+    $tooltips     = '';
     $userID       = '';
     $sql = "SELECT * FROM users WHERE name LIKE BINARY \"$sanUserName\"";
     $res = mysqli_query($link, $sql);
     if(mysqli_num_rows($res)) {
       $row = mysqli_fetch_assoc($res);
+      $tooltips   = $row['tooltips'];
       $avatar     = $row['avatar'];
       $userID     = $row['id'];
       if($passhash){
@@ -410,7 +424,87 @@
       'avatar' => $avatar,
       'userID' => $userID,
       'passhash' => $passhash,
+      'tooltips' => $tooltips,
     ]);
+  }
+  
+  function updatePassword($userID, $passhash, $oldPassword, $newPassword){
+    global $link;
+    $success = false;
+    $passhash = '';
+    if(authed($userID, $passhash) && password_verify($oldPassword, $passhash)){
+      $sanUID = intval($userID);
+      $newPasshash = password_hash($newPassword, PASSWORD_DEFAULT);
+      $sql = "UPDATE users SET passhash = \"$newPasshash\" WHERE id = $sanUID";
+      if(mysqli_query($link, $sql)){
+        $success = true;
+        return [ 'success' => $success, 'passhash' => $newPasshash];
+      }
+    }
+    return [ 'success' => $success, 'passhash' => $passhash ];
+  }
+  function updateAvatar($userID, $passhash, $avatar){
+    global $link;
+    $success = false;
+    if(authed($userID, $passhash)){
+      $sanUID = intval($userID);
+      $sanAvatar = mysqli_real_escape_string($link, $avatar);
+      $sql = "UPDATE users SET avatar = \"$sanAvatar\" WHERE id = $sanUID";
+      if(mysqli_query($link, $sql)){
+        $success = true;
+      }
+    }
+    return [ 'success' => $success ];
+  }
+  
+  function register($regUserName, $regPassword){
+    global $link;
+    if(nameIsAvailable($regUserName) == '<span class="nameAvailable">name is available</span>' && strlen($regPassword) >= 3){
+      $passhash = password_hash($regPassword, PASSWORD_DEFAULT);
+      $sanName  = mysqli_real_escape_string($link, $regUserName);
+      $avatar   = 'defaultAvatar.jpg';
+      $enabled  = 1;
+      $tooltips = 1;
+      $data     = [];
+      $sql = "INSERT INTO users (name, passhash, avatar, enabled, tooltips) VALUES(\"$sanName\", \"$passhash\", \"$avatar\", $enabled, $tooltips)";
+      if(mysqli_query($link, $sql)){
+        $userID = mysqli_insert_id($link);
+        return [ 'name'     => "create or search projects",
+                 'slug'     => '',
+                 'private'  => 0,
+                 'error'    => '',
+                 'userID'   => $userID,
+                 'userName' => $regUserName,
+                 'success'  => true,
+                 'page'     => 0,
+                 'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+      }else{
+        return [ 'success' => false, $data ];
+      }
+    }else{
+      return [ 'success' => false, $data ];
+    }
+  }
+  
+  function nameIsAvailable($name){
+    global $link;
+    $ret = true;
+    $sql = "SELECT name FROM users";
+    if($res = mysqli_query($link, $sql)){
+      $lname = strtolower($name);
+      for($i=0; $ret && $i<mysqli_num_rows($res); ++$i){
+        $row = mysqli_fetch_assoc($res);
+        $n = strtolower($row['name']);
+        if($n == $lname) $ret = false;
+      }
+      if($ret){
+        return '<span class="nameAvailable">name is available</span>';
+      }else{
+        return '<span class="nameTaken">this name is taken!</span>';
+      }
+    }else{
+      return '<span class="nameTaken">this name is taken!</span>';
+    }
   }
   
   function getProjects($userID, $passhash){
@@ -669,6 +763,8 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
+
+
 
 
 

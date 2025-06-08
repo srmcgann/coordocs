@@ -18,7 +18,7 @@ const Convert = (src, curPage=0, navEl = '', contEl = '') => {
     if(inCodeBlock){
       if(line.substr(0, 3) == '```'){
         var B64 = btoa(codeBuffer)
-        ret += pageFilter() ? '</code></pre><div data-customtooltip="copy code section to clipboard" class="copyCodeAppendage"><button class="toolButton copyButton" onclick="copyB64(\''+B64+'\')"></button></div><br>' : ''
+        ret += pageFilter() ? '</code></pre><div data-customtooltip="copy code section to clipboard" class="copyCodeAppendage"><button class="toolButton copyButton" onclick="copyB64(\''+B64+'\')"></button></div><br><br>' : ''
         inCodeBlock = false
       }else{
         codeBuffer += pageFilter() ? line + "\n" : ''
@@ -255,6 +255,7 @@ const Convert = (src, curPage=0, navEl = '', contEl = '') => {
 export {
   Convert
 }
+
 
 
 
