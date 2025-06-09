@@ -1716,6 +1716,7 @@
       
       window.updateProjectName = name => {
         if(slug && projectUserName == userName){
+          let sendData = {slug, name, userID, passhash}
           var url = URLbase + 'updateProjectName.php'
           fetch(url, {
             method: 'POST',
@@ -1895,6 +1896,7 @@
     </script>
   </body>
 </html>
+
 
 
 
