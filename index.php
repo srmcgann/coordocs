@@ -1703,6 +1703,12 @@
             if(data.success){
               avatar = avatarURL
               document.querySelector('#mainAvatar').style=`background-image: url(${avatar})`
+              document.querySelectorAll('.projectAvatar').forEach(el=>{
+                el.style=`background-image: url(${avatar})`
+              })
+              document.querySelectorAll('.avatar').forEach(el=>{
+                el.style=`background-image: url(${avatar})`
+              })
             }
           })
         }
@@ -1889,7 +1895,6 @@
     </script>
   </body>
 </html>
-
 
 
 
