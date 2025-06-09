@@ -17,7 +17,7 @@ const Convert = (src, curPage=0, navEl = '', contEl = '') => {
   src.split("\n").forEach(line => {
     if(inCodeBlock){
       if(line.substr(0, 3) == '```'){
-        var B64 = btoa(codeBuffer)
+        var B64 = btoa(unescape(encodeURIComponent(codeBuffer)))
         ret += pageFilter() ? '</code></pre><div data-customtooltip="copy code section to clipboard" class="copyCodeAppendage"><button class="toolButton copyButton" onclick="copyB64(\''+B64+'\')"></button></div><br><br>' : ''
         inCodeBlock = false
       }else{
@@ -255,6 +255,8 @@ const Convert = (src, curPage=0, navEl = '', contEl = '') => {
 export {
   Convert
 }
+
+
 
 
 
