@@ -234,6 +234,7 @@
       $ret .= "</div>
                  <button
                   class=\"projectButton\"
+                  data-customtooltip=\"view project: {$hit['name']}\"
                   onclick=\"window.LoadProject('{$hit['slug']}',{$hit['page']})\"
                  >{$hit['name']}</button>";
       $ret .= "<div class=\"userProjectCluster\">
@@ -359,6 +360,7 @@
         
         $ret .=   "<button
                     class=\"projectButton\"
+                    data-customtooltip=\"view project: {$project['name']}\"
                     onclick=\"window.LoadProject('{$project['slug']}')\"
                    >{$project['name']}</button>
                    <div class=\"userProjectCluster\">
@@ -382,6 +384,10 @@
                      <td class=\"projectDetailItem\">{$project['slug']}</td>
                    </tr>
                    <tr>
+                     <td class=\"projectDetailLabel\">views</td>
+                     <td class=\"projectDetailItem\">{$project['views']}</td>
+                   </tr>
+                   <tr>
                      <td class=\"projectDetailLabel\">updated</td>
                      <td class=\"projectDetailItem\">{$project['updated']}</td>
                    </tr>
@@ -393,14 +399,11 @@
                      <td class=\"projectDetailLabel\">visibility</td>
                      <td class=\"projectDetailItem\">$pvt</td>
                    </tr>
-                   <tr>
-                     <td class=\"projectDetailLabel\">views</td>
-                     <td class=\"projectDetailItem\">{$project['views']}</td>
-                   </tr>
                  </table></div>";
         $ret .= "</div>";
       }
     }else{
+      $ret = '<div class="projectList" style="display: inline-block; width: 400px; position: absolute; top: calc(50% - 100px); left: 50%; transform: translate(-50%, -50%);"><br>my projects<br><br>';
       $ret .= '<br><br><br><div style="color: #888;"> you have no projects </div><br>';
       $ret .= '<div style="color: #888;"> create a new one by clicking \'new\' above </div>';
     }
@@ -442,7 +445,6 @@
   function updatePassword($userID, $passhash, $oldPassword, $newPassword){
     global $link;
     $success = false;
-    $passhash = '';
     if(authed($userID, $passhash) && password_verify($oldPassword, $passhash)){
       $sanUID = intval($userID);
       $newPasshash = password_hash($newPassword, PASSWORD_DEFAULT);
@@ -776,10 +778,5 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
-
-
-
-
-
 
 

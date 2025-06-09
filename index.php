@@ -73,6 +73,11 @@
         background-color: transparent;
         cursor: pointer;
       }
+      .main img{
+        margin: 5px;
+        border: 1px solid #fff1;
+        border-radius: 5px;
+      }
       .main{
         height: calc(100vh - 200px);
         border: none;
@@ -141,8 +146,8 @@
         padding: 8px;
         font-size: 16px;
         line-height: 1em;
-        max-width: 200px;
-        min-width: 100px;
+        max-width: 250px;
+        min-width: 150px;
         transform: translate(-50%, -30px);
         transition: all 150ms cubic-bezier(.25, .8, .25, 1);
       }
@@ -1884,6 +1889,8 @@
     </script>
   </body>
 </html>
+
+
 
 
 
