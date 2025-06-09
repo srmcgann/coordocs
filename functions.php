@@ -13,6 +13,13 @@
     }
     return $res;
   }
+  
+  function incrementViews($slug){
+    global $link;
+    $sanSlug = mysqli_real_escape_string($link, $slug);
+    $sql = "UPDATE projects SET views = views + 1 WHERE slug LIKE BINARY \"$sanSlug\"";
+    mysqli_query($link, $sql);
+  }
 
   function decToAlpha($val){
     $alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -386,6 +393,10 @@
                      <td class=\"projectDetailLabel\">visibility</td>
                      <td class=\"projectDetailItem\">$pvt</td>
                    </tr>
+                   <tr>
+                     <td class=\"projectDetailLabel\">views</td>
+                     <td class=\"projectDetailItem\">{$project['views']}</td>
+                   </tr>
                  </table></div>";
         $ret .= "</div>";
       }
@@ -527,6 +538,7 @@
             'avatar'  => $avatar,
             'name'    => $row['name'],
             'slug'    => $row['slug'],
+            'views'   => $row['views'],
             'created' => prettyDate($row['created']),
             'updated' => prettyDate($row['updated']),
             'private' => $row['private'],
@@ -719,6 +731,7 @@ changes made here are pushed immediately, so take care with keystrokes.
           $res2 = mysqli_query($link, $sql);
           $row2 = mysqli_fetch_assoc($res2);
           $userName = $row2['name'];
+          incrementViews($slug);
           return [ 'name'     => $row['name'],
                    'slug'     => $row['slug'],
                    'private'  => intval($row['private']),
@@ -763,6 +776,7 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
+
 
 
 

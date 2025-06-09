@@ -11,7 +11,7 @@
   ✔ copy button @ all code blocks
   ✔ highlighting / remove highlighting
   ✔ registration
-  * user profile settings screen, w/ avatar, password change, delete acct, etc.
+  ✔ user profile settings screen, w/ avatar, password change, delete acct, etc.
   * theme selector
 -->
 <?php
@@ -151,7 +151,13 @@
         transform: translate(-50%, 0);
         transition-duration: 300ms;
       }
-      
+      .centeredPlist{
+        top: calc(50% - 70px);
+        position: absolute;
+        transform: translate(-50%, -50%);
+        left: 50%;
+        width: 400px;
+      }
       .projectDetailsTable{
         border-collapse: collapse;
         font-size: 16px;
@@ -598,7 +604,8 @@
         </button>
         <div id="mainAvatar">
         </div>
-        <div style="float: left; display: inline-block; width: 290px;">
+        <div style="float: left; display: inline-block; width: 270px; line-height; 19px;">
+          <div>change password</div><br>
           <input
             maxlength="128"
             type="password"
@@ -613,7 +620,7 @@
             type="password"
             id="newPassword"
             style="font-size: 12px;"
-            oninput="updatePasswordInput()"
+            onkeyup="updatePasswordInput(event)"
             spellcheck="false"
             placeholder="new password"
             class="textInput newPasswordInput"
@@ -622,7 +629,7 @@
             maxlength="128"
             type="password"
             id="confirmNewPassword"
-            oninput="updatePasswordInput(this)"
+            onkeyup="updatePasswordInput(event)"
             style="font-size: 12px;"
             spellcheck="false"
             placeholder="confirm new password"
@@ -641,9 +648,8 @@
           </button>
         </div>
         <div style="clear:both;"></div>
-        <br>
         <div style="text-align: left;font-size:14px;padding-left: 62px;">
-          my avatar
+          my avatar URL
         </div>
         <input
           maxlength="2048"
@@ -651,7 +657,7 @@
           style="width: calc(100% - 10px); font-size: 12px;"
           spellcheck="false"
           oninput="updateAvatar(this)"
-          placeholder="avatar"
+          placeholder="enter avatar URL"
           class="textInput loginInput"
         />
       </div>
@@ -741,7 +747,7 @@
         <div id="regError"></div>
         <br>
         <button
-          id="regButton"
+          id="submitButton"
           class="modalButtons navButtons disabledButton"
           onclick="submitReg()"
           data-customtooltip="submit these credentials"
@@ -907,6 +913,7 @@
           onclick="removeHighlighting()"
         >remove highlighting</button>
       </div>
+      <div style="border-bottom: 1px solid #fff3;" id="mainDivider"></div>
       <div class="main"></div>
     </div>
 
@@ -1128,6 +1135,7 @@
         if(confirmNewPassword.length >= 3 && newPassword.length >= 3){
           if(confirmNewPassword == newPassword){
             let sendData = { userID, passhash, oldPassword, newPassword}
+            console.log(sendData)
             var url = URLbase + 'updatePassword.php'
             fetch(url, {
               method: 'POST',
@@ -1136,8 +1144,12 @@
               },
               body: JSON.stringify(sendData),
             }).then(res => res.json()).then(data => {
+              console.log(data)
               if(data.success){
                 passhash = data.passhash
+                UpdateCookie()
+                alert('password updated successfully')
+                closePrompts()
               }else{
                 alert('there was an error updating the password!')
               }
@@ -1240,7 +1252,8 @@
         }
       }
 
-      window.updatePasswordInput = () => {
+      window.updatePasswordInput = e => {
+        updatePasswordButton.className = 'modalButtons navButtons disabledButton'
         var newPassword = document.querySelector('#newPassword').value
         var confirmNewPassword = document.querySelector('#confirmNewPassword').value
         var newPasswordErrorEl = document.querySelector('#updatePasswordError')
@@ -1249,6 +1262,10 @@
           if(confirmNewPassword == newPassword){
             newPasswordErrorEl.style.color = '#4f48'
             newPasswordErrorEl.innerHTML = 'passwords match'
+            updatePasswordButton.className = 'modalButtons navButtons enabledButton'
+            if(e.keyCode == 13){
+              updatePassword()
+            }
           }else{
             newPasswordErrorEl.style.color = '#f448'
             newPasswordErrorEl.innerHTML = 'passwords don\'t match'
@@ -1414,7 +1431,7 @@
       }
       
       const ShowWelcomeScreen = () => {
-        var rb = document.querySelector('#regButton').cloneNode(true)
+        //var rb = document.querySelector('#regButton').cloneNode(true)
         html = `<div 
                  style="position:relative; top:calc(50vh - 200px); width: 500px; left: 50%; transform: translate(-50%);"
                  class="projectList"
@@ -1435,8 +1452,7 @@
                   </ol>
                 </div>`
         setTimeout(()=>{
-          rb.onclick = window.Register
-          document.querySelector('#projList').appendChild(rb)
+
           var exLink = document.createElement('a')
           exLink.href = './?s=example'
           exLink.target = '_blank'
@@ -1544,6 +1560,7 @@
       
       window.toggleEditMode = (mode, forceReload=false, fromNewButton=false) => {
         if(mode == 'view') updateURL('e', '')
+        setTimeout(()=>{ rsz() }, 0)
         if(slug && projectUserName == userName){
           switch(mode){
             case 'edit':
@@ -1852,10 +1869,22 @@
       }
       
       CheckLogin()
-      //window.toggleEditMode(viewMode)
+      
+      // adjust main div to meet page bottom
+      var rsz
+      window.onresize = rsz = () => {
+        var l = document.querySelector('#mainDivider').getBoundingClientRect().y
+        var h = `${window.innerHeight-l-3}px`
+        document.querySelectorAll('.main')[0].style.height = h
+        if(document.querySelector('#textEditor')){
+          document.querySelector('#textEditor').style.height = h
+        }
+      }
+      setTimeout(() => { rsz() }, 1e3)
     </script>
   </body>
 </html>
+
 
 
 
