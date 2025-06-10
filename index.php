@@ -85,7 +85,7 @@
         padding-top: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        background: #111;
+        background: #001;
         color: #ffd;
         font-family: monospace, verdana;
         padding-bottom: 200px;
@@ -101,17 +101,17 @@
       }
       .toolbarComponent{
         border-radius: 10px;
-        background: #000;
+        background: #2088;
         height: 35px;
-        /* border: 1px solid #82f4; */
+        border: 1px solid #208;
         display: inline-block;
         vertical-align: top;
         position: relative;
         text-align: center;
         padding-left: 10px;
         padding-right: 10px;
-        margin: 2px;
-        margin-top: 0;
+        margin: 5px;
+        margin-right: 0;
       }
       .icon{
         display: inline-block;
@@ -177,7 +177,7 @@
         position: fixed;
         font-size: 16px;
         padding-top: 2px;
-        background: #111;
+        background: #001;
         text-align: left;
       }
       .enabledButton{
@@ -383,6 +383,9 @@
         text-align: center;
         overflow-y: hidden;
         overflow-x: hidden;
+        font-size: 24px;
+        line-height: 16px;
+        color: #f08;
       }
       a{
         color: #f80;
@@ -468,6 +471,8 @@
         border: 1px solid #4f84;
         display: inline-block;
         vertical-align: middle;
+        padding-left: 5px;
+        padding-right: 5px;
       }
       .avatar{
         width: 40px;
@@ -479,6 +484,7 @@
         border-radius: 10px;
         display: inline-block;
         vertical-align: middle;
+        border: none;
       }
       #newDocButton{
         background: #fa4;
@@ -488,8 +494,8 @@
         width 2px;
         height: 36px;
         display: inline-block;
-        background: #111;
-        vertical-align: middle;
+        background: #40f8;
+        vertical-align: top;
         width: 2px;
       }
       #regUsernameError{
@@ -532,7 +538,7 @@
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        margin-top: 4px;
+        margin-top: -4px;
       }
 
       .checkmarkContainer input {
@@ -551,6 +557,15 @@
         background-color: #021;
         border-radius: 5px;
         border: 1px solid #042;
+      }
+      
+      input[type=radio]:focus{
+        outline: none;
+      }
+      input[type=radio]{
+        transform: scale(2.0);
+        margin-top: -2px;
+        vertical-align: middle;
       }
       
       #mainAvatar{
@@ -596,6 +611,27 @@
         transform: rotate(45deg);
       }
       
+      ::-webkit-scrollbar {
+        width: 20px;
+      }
+
+      /* Track */
+      ::-webkit-scrollbar-track {
+        box-shadow: inset 0 0 5px grey; 
+        border-radius: 5px;
+        background: #000;
+      }
+       
+      /* Handle */
+      ::-webkit-scrollbar-thumb {
+        background: #208; 
+        border-radius: 5px;
+      }
+
+      /* Handle on hover */
+      ::-webkit-scrollbar-thumb:hover {
+        background: #40f; 
+      }
     </style>
     <link rel="stylesheet" href="./highlight.js/violet.min.css">
     <script src="./highlight.js/highlight.min.js"></script>
@@ -661,7 +697,7 @@
           id="avatarLink"
           style="width: calc(100% - 10px); font-size: 12px;"
           spellcheck="false"
-          oninput="updateAvatar(this)"
+          onkeyup="updateAvatar(this, event)"
           placeholder="enter avatar URL"
           class="textInput loginInput"
         />
@@ -779,13 +815,28 @@
        ></div>
     </div>
     <div class="toolbar">
+    
+    
+      <div
+        class="toolbarComponent"
+        style="padding-top:3px; height:32px;"
+        data-customtooltip="click to browse this user's documents"
+      >
+        <span class="loginLabel" id="docOwnerName">doc owner</span>
+        <button
+          id="docOwner"
+          class="avatar"
+        ></button>
+      </div>
+      
+      
       <div
         class="toolbarComponent"
         style="padding-top:7px; height:28px;"
         data-customtooltip="the title of the item(s) featured here"
       >
         <label for="screenName">
-          <span class="loginLabel">this doc</span>
+          <span class="loginLabel">title</span>
           <input
             maxlength="1024"
             oninput="updateProjectName(this.value)"
@@ -821,7 +872,11 @@
         style="display: none;"
         style="min-width: 100px; text-align: left;"
       >
-        <label class="checkmarkContainer" data-customtooltip="toggle link visibility">
+        <label
+          class="checkmarkContainer"
+          data-customtooltip="toggle link visibility"
+          style="margin-top: 4px;"
+        >
           <span id="privateCheckLabel">private</span>
           <input
             id="privacyCheck"
@@ -870,7 +925,6 @@
       <div
         class="toolbarComponent"
         style="padding-top:2px; height: 33px;"
-        data-customtooltip="search your projects and public projects"
       >
         <label for="searchField">
           <div class="icon" style="background-image: url(search.png);"></div>
@@ -883,18 +937,84 @@
             placeholder="search for something"
             spellcheck="false"
             onkeyup="searchMaybe(event)"
+            data-customtooltip="search your projects and public projects"
           />
+        </label>
+        <label
+          data-customtooltip="search within the current user's docs only"
+          id="userSearchContainer"
+          for="userSearch"
+          onclick="focusSearchInput()"
+        >
+          <input type="radio" id="userSearch" value="userSearch" name="searchParams">
+          user
+        </label>
+        <label
+          data-customtooltip="search within the current doc only"
+          for="curDocSearch"
+          id="curDocSearchContainer"
+          style="display: none;"
+          onclick="focusSearchInput()"
+        >
+          <input type="radio" id="curDocSearch" value="curDocSearch" name="searchParams">
+          doc
+        </label>
+        <label
+          data-customtooltip="search all docs, including mine and other users"
+          for="everythingSearch"
+          onclick="focusSearchInput()"
+        >
+          <input
+            selected
+            type="radio"
+            id="everythingSearch"
+            value="everythingSearch"
+            name="searchParams"
+          >
+          all
+        </label>
+        <div class="vSpc"></div>
+        <label
+          style="margin-left; 20px;"
+          class="checkmarkContainer"
+          for="exactSearchCheck"
+          checked
+          data-customtooltip="exact search, as provided"
+        >
+          <span id="exactSearchCheckLabel">exact</span>
+          <input
+            id="exactSearchCheck"
+            checked
+            type="checkbox"
+          />
+          <span class="checkmark"></span>
+        </label>
+        <label
+          class="checkmarkContainer"
+          for="caseSensitiveSearchCheck"
+          data-customtooltip="uppercase and lowercase are considered"
+        >
+          <span id="exactSearchCheckLabel">case</span>
+          <input
+            id="caseSensitiveSearchCheck"
+            type="checkbox"
+          />
+          <span class="checkmark"></span>
         </label>
       </div>
       <div class="toolbarComponent">
-        <div id="loginContainer"></div>
+        <div id="loginContainer" style="padding-top: 2px;"></div>
       </div>
       <div
         class="toolbarComponent"
         id="tooltipsContainer"
         style="min-width: 132px; text-align: left;"
       >
-        <label class="checkmarkContainer" data-customtooltip="toggle tooltips @ hover">
+        <label
+          class="checkmarkContainer"
+          data-customtooltip="toggle tooltips @ hover"
+          style="margin-top: 4px;"
+        >
           <span id="tooltipCheckLabel">show tooltips</span>
           <input
             id="tooltipCheck"
@@ -967,17 +1087,31 @@
         location.href = updateURL('s', slug, true)
       }
       
+      window.focusSearchInput = e => document.querySelector('#searchField').focus()
+      
       window.searchMaybe = e => {
+        
         var searchField = document.querySelector('#searchField')
-        if(e.keyCode == 13) {
+        while(searchField.value[0] == ' '){
+          var s = searchField.value.split('')
+          s.shift()
+          searchField.value = s.join('')
+        }
+        if(e.keyCode == 13 && searchField.value.length) {
           toggleEditMode('view', true)
+          var tSlug = slug
           slug = ''
           page = ''
           var search = searchField.value
           updateURL('h', encodeURIComponent(search))
           searchField.value = ''
+
+          var searchMode = document.querySelector('input[name="searchParams"]:checked').value
+          var caseSensitive = document.querySelector('#caseSensitiveSearchCheck').value
+          var exact = document.querySelector('#exactSearchCheck').value
           
-          let sendData = { search, userID, passhash }
+          let sendData = { search, userID, passhash, exact, searchMode,
+                           caseSensitive, projectUserID, slug: tSlug}
           var url = URLbase + 'search.php'
           fetch(url, {
             method: 'POST',
@@ -986,6 +1120,7 @@
             },
             body: JSON.stringify(sendData),
           }).then(res => res.json()).then(data => {
+            console.log(data)
             if(data.success){
               html = data.html
               
@@ -1204,7 +1339,7 @@
         if(e.keyCode == 27){
           closePrompts()
         }
-        var regButton = document.querySelector('#regButton')
+        var regButton = document.querySelector('#submitButton')
         var userNameField = document.querySelector('#regUserName')
         var passwordField = document.querySelector('#regPassword')
         var confirmPasswordField = document.querySelector('#regConfirmPassword')
@@ -1353,7 +1488,6 @@
           document.querySelector('#mainAvatar').style=`background-image: url(${avatar})`
           avatarEl.onclick = () => showPrompt('prefs')
           avatarEl.className = 'avatar'
-          avatar
           avatarEl.style.backgroundImage = `url(${avatar})`
           loginEl.appendChild(avatarEl)
           var logoutButton = document.createElement('button')
@@ -1371,7 +1505,7 @@
           loginEl.appendChild(loginButton)
           var registerButton = document.createElement('button')
           registerButton.className = 'authButtons'
-          registerButton.id = 'regButton'
+          registerButton.id = 'regToolbarButton'
           registerButton.setAttribute('data-customtooltip', 'create a new profile')
           registerButton.onclick = () => showPrompt('register')
           registerButton.innerHTML = 'register'
@@ -1512,20 +1646,41 @@
         }
         return ret
       }
+      
+      
+      const SetOwner = async userID => {
+        var ret = {name: '', avatar: ''}
+        let sendData = { userID }
+        var url = URLbase + 'getAvatar.php'
+        await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sendData),
+        }).then(res => res.json()).then(data => {
+          if(data.success) ret = data
+        })
+        return ret
+      }
+      
 
       var mainEl          = document.querySelectorAll('.main')[0]
       var slug            = GetURLParam('s')
+      var user            = GetURLParam('u')
+      if(user === '0') updateURL('u', ''), user = ''
       var page            = GetURLParam('p')
       var highlight       = GetURLParam('h')
       var viewMode        = GetURLParam('e') ? 'edit' : 'view'
       var projectUserName = ''
+      var projectUserID   = ''
       var html            = ''
       var curPageName = ''
       var totalPages      = () => GetURLParam('s') ? html.split('&lt;pagebreak').length - 1 : 0
       
       const GetPageData = () => {
         projectUserName= ''
-        let sendData = { passhash, userID, slug, page }
+        let sendData = { passhash, userID, slug, page, user }
         var url = URLbase + 'getPageData.php'
         fetch(url, {
           method: 'POST',
@@ -1536,8 +1691,14 @@
         }).then(res => res.json()).then(data => {
           
           if(data.success) {
-            if(loggedin){
+            if(1 ||loggedin){
               html = data.data
+              var u
+              SetOwner(u = GetURLParam('u') || data.userID || userID).then(user => {
+                document.querySelector('#docOwner').style.backgroundImage = `url(${user.avatar})`
+                document.querySelector('#docOwner').parentNode.onclick = () => location.href = location.origin + location.pathname + `?u=${u}`
+                document.querySelector('#docOwnerName').innerHTML = `doc owner: <font style="color: #0f8;">${user.name}</font>`
+              })
             }else{
               if(!slug){
                 ShowWelcomeScreen()
@@ -1552,6 +1713,7 @@
           document.querySelector('#screenName').value = data.name
           curPageName = data.name
 
+          projectUserID = data.userID
           projectUserName = data.userName
           document.querySelector('#tooltipsContainer').style.display = loggedin ? 'inline-block' : 'none'
           var checkbox = document.querySelector('#privacyCheck')
@@ -1628,6 +1790,7 @@
             updateURL('s', '')
           }else{
             projectUserName = userName
+            projectUserID = userID
           }
           
           slug = data.slug
@@ -1688,7 +1851,10 @@
         })
       }
       
-      window.updateAvatar = input => {
+      window.updateAvatar = (input, e) => {
+        if(e.keyCode == 27){
+          closePrompts()
+        }        
         var avatarURL = input.value
         if(avatarURL){
           let sendData = {userID, passhash, avatar: avatarURL}
@@ -1847,6 +2013,8 @@
       const Refresh = (success = true) => {
 
         if(slug) {
+          document.querySelector('#curDocSearchContainer').style.display = 'inline'
+          document.querySelector('#curDocSearchContainer').click()
           document.querySelector('#screenName').style.color = projectUserName == userName ? '#4f8' : '#aaa'
           if(loggedin){
             if(projectUserName == userName){
@@ -1856,6 +2024,8 @@
             document.querySelector('.checkmarkContainer').parentNode.style.display = 'inline-block'
           }
         }else{
+          document.querySelector('#curDocSearchContainer').style.display = 'none'
+          document.querySelector('#userSearchContainer').click()
           document.querySelector('#screenName').style.color = '#aaa'
           document.querySelector('.checkmarkContainer').parentNode.style.display = 'none'
           if(loggedin){
@@ -1864,6 +2034,8 @@
             document.querySelector('#newDocButton').parentNode.style.display = 'none'
           }
         }
+        document.querySelector('#searchField').focus()
+        document.querySelector('#userSearchContainer').setAttribute('data-customtooltip', `search within the current user (${projectUserName}) docs only`)
         
         if(CurPage() == 0) navToPage('+1')
         DisplayContent(success)
@@ -1896,7 +2068,6 @@
     </script>
   </body>
 </html>
-
 
 
 

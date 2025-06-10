@@ -21,6 +21,28 @@
     mysqli_query($link, $sql);
   }
 
+  function getAvatar($userID){
+    global $link;
+    $success = false;
+    $sanUID = intval($userID);
+    $sql = "SELECT avatar, name FROM users WHERE id = $sanUID";
+    if($res = mysqli_query($link, $sql)){
+      $row = mysqli_fetch_assoc($res);
+      $success = true;
+      return [
+        'success' => $success,
+        'avatar'  => $row['avatar'],
+        'name'    => $row['name'],
+      ];
+    }else{
+      return [
+        'success' => $success,
+        'avatar' => '',
+        'name'   => '',
+      ];
+    }
+  }
+    
   function decToAlpha($val){
     $alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     $ret="";
@@ -87,7 +109,7 @@
       'created'  => '',
       'updated'  => '',
       'userName' => '',
-      'name'     => 'coordocs - better docs',
+      'name'     => '',
     ];
     $ret['url'] = fullCurrentURL();
     if(!!strpos($ret['url'], '?')){
@@ -128,13 +150,43 @@
     }
     return $ret;
   }
-  
-  function search($search, $userID, $passhash){
+
+  function search($search, $userID, $passhash, $exact, 
+                  $searchMode, $caseSensitive,
+                  $projectUserID='', $slug=''){
+                    
     global $link;
     $success = false;
     $memo = [];
-    $sanUID = authed($userID, $passhash) ? intval($userID) : -1;
-    $sql = "SELECT * FROM projects WHERE userID = $sanUID OR private = 0";
+    $authed = authed($userID, $passhash);
+    $sanUID = $authed ? intval($userID) : -1;
+    switch($searchMode){
+      case 'userSearch':
+        if($authed && $userID == $projectUserID){
+          $sql = "SELECT * FROM projects WHERE userID = $sanUID";
+        }else if($projectUserID){
+          $sanProjectUserID = intval($projectUserID);
+          $sql = "SELECT * FROM projects WHERE userID = $sanProjectUserID AND private = 0";
+        }else{
+          $sql = "SELECT * FROM projects WHERE userID = $sanUserID AND private = 0";
+        }
+      break;
+      case 'curDocSearch':
+        $sanSlug = mysqli_real_escape_string($link, $slug);
+        if($authed){
+          $sql = "SELECT * FROM projects WHERE (private = 0 OR userID = $sanUID) AND slug LIKE BINARY \"$sanSlug\"";
+        }else{
+          $sql = "SELECT * FROM projects WHERE private = 0 AND slug LIKE BINARY \"$sanSlug\"";
+        }
+      break;
+      case 'everythingSearch':
+        if($authed){
+          $sql = "SELECT * FROM projects WHERE private = 0 OR userID = $sanUID";
+        }else{
+          $sql = "SELECT * FROM projects WHERE private = 0";
+        }
+      break;
+    }
     $res = mysqli_query($link, $sql);
     $hits = [];
     $esearch = urlencode($search);
@@ -167,8 +219,9 @@
               $res2 = mysqli_query($link, $sql);
               $row2 = mysqli_fetch_assoc($res2);
               $memo[$row['userID']] = [
-                'avatar' => $row2['avatar'],
+                'avatar'   => $row2['avatar'],
                 'userName' => $row2['name'],
+                'userID'   => $uid,
               ];
             }
             $hits[] = [
@@ -179,6 +232,7 @@
               "name"       => $row["name"],
               "avatar"     => $memo[$row['userID']]['avatar'],
               "userName"   => $memo[$row['userID']]['userName'],
+              "userID"     => $memo[$row['userID']]['userID'],
               "hitsInPage" => $hitsInPage,
               "hitsInProj" => $hitsInProj,
               "page"       => $page,
@@ -241,6 +295,7 @@
                  <button
                    class=\"projectAvatar\"
                    style=\"background-image: url($bg);\"
+                   onclick=\"location.href=location.origin+location.pathname+'?u={$hit['userID']}'\"
                    data-customtooltip=\"user: $un\"
                  ></button><br>
                  <span class=\"userName\">{$hit['userName']}</span>
@@ -327,7 +382,7 @@
              'error'   => '',
              'userID'  => $userID,
              'success' => true,
-             'data'    => renderProjectMenu(getProjects($userID, $passhash))];
+             'data'    => renderProjectMenu(getProjects($userID, $passhash), $userID)];
   }
   
   function fullCurrentURL() {
@@ -336,8 +391,16 @@
             $_SERVER['REQUEST_URI'];
   }
 
-  function renderProjectMenu($projects){
-    $ret = '<div class="projectList"><br>my projects<br><br>';
+  function renderProjectMenu($projects, $userID, $user=''){
+    global $link;
+    
+    $sanUID = intval($user ? $user : $userID);
+    $sql = "SELECT * FROM users WHERE id = $sanUID";
+    $res = mysqli_query($link, $sql);
+    $row = mysqli_fetch_assoc($res);
+    $userName = $row['name'];
+    
+    $ret = "<div class=\"projectList\"><br>$userName docs<br><br>";
     if(sizeof($projects) > 0){
       forEach($projects as $project){
         $ret .= "<div class=\"projectMenuItem\">
@@ -367,6 +430,7 @@
                      <button
                        class=\"projectAvatar\"
                        style=\"background-image: url({$project['avatar']});\"
+                       onclick=\"location.href=location.origin+location.pathname+'?u={$project['userID']}'\"
                        data-customtooltip=\"user: {$project['user']}\"
                      ></button><br>
                      <span class=\"userName\">{$project['user']}</span>
@@ -520,12 +584,23 @@
     }
   }
   
-  function getProjects($userID, $passhash){
+  function getProjects($userID, $passhash, $user = ''){
     global $link;
     $projects = [];
-    if(authed($userID, $passhash)){
-      $sanUID      = intval($userID);
-      $sql = "SELECT * FROM projects WHERE userID = $sanUID";
+    $authed = authed($userID, $passhash);
+    if($user || $authed){
+      if($user){
+        $sanUID      = intval($user);
+        $sanUID2      = intval($userID);
+        if($sanUID == $sanUID2 && $authed){
+          $sql = "SELECT * FROM projects WHERE userID = $sanUID";
+        }else {
+          $sql = "SELECT * FROM projects WHERE userID = $sanUID AND private = 0";
+        }
+      }else{
+        $sanUID      = intval($userID);
+        $sql = "SELECT * FROM projects WHERE userID = $sanUID";
+      }
       $res = mysqli_query($link, $sql);
       if(mysqli_num_rows($res)){
         $sql = "SELECT * FROM users WHERE id = $sanUID";
@@ -538,6 +613,7 @@
           $projects[] = [
             'user'    => $userName,
             'avatar'  => $avatar,
+            'userID'  => $sanUID,
             'name'    => $row['name'],
             'slug'    => $row['slug'],
             'views'   => $row['views'],
@@ -690,7 +766,7 @@ changes made here are pushed immediately, so take care with keystrokes.
                    'userName' => '',
                    'success'  => false,
                    'page'     => 0,
-                   'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+                   'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID)];
         }
       }else{
         return [ 'name'     => "create or search projects",
@@ -701,7 +777,7 @@ changes made here are pushed immediately, so take care with keystrokes.
                  'userName' => '',
                  'success'  => false,
                  'page'     => 0,
-                 'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+                 'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID)];
       }
     }else{
       return [ 'name'     => "create or search projects",
@@ -712,11 +788,11 @@ changes made here are pushed immediately, so take care with keystrokes.
                'userName' => '',
                'success'  => false,
                'page'     => 0,
-               'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+               'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID)];
     }
   }
   
-  function pageData($slug, $page, $userID, $passhash) {
+  function pageData($slug, $page, $userID, $passhash, $user) {
     global $link;
     if($slug){
       if(!privateDoc($slug) || authed($userID, $passhash)){
@@ -737,7 +813,7 @@ changes made here are pushed immediately, so take care with keystrokes.
           return [ 'name'     => $row['name'],
                    'slug'     => $row['slug'],
                    'private'  => intval($row['private']),
-                   'userID'   => $userID,
+                   'userID'   => $pUID,
                    'userName' => $userName,
                    'success'  => true,
                    'error'    => '',
@@ -752,7 +828,7 @@ changes made here are pushed immediately, so take care with keystrokes.
                    'success'  => false,
                    'error'    => "slug ($slug) not user\'s. user ok.",
                    'page'     => intval($page),
-                   'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+                   'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID, $user)];
         }
       }else{
         return [ 'name'     => "create or search projects",
@@ -763,18 +839,23 @@ changes made here are pushed immediately, so take care with keystrokes.
                  'userName' => '',
                  'success'  => false,
                  'page'     => intval($page),
-                 'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+                 'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID, $user)];
       }
     }
-    return [ 'name'     => "create or search projects",
+    $pUID = intval($user ? $user : $userID);
+    $sql = "SELECT name FROM users WHERE id = $pUID";
+    $res = mysqli_query($link, $sql);
+    $row = mysqli_fetch_assoc($res);
+    $userName = $row['name'];
+    return [ 'name'     => "$userName docs",
              'slug'     => $slug,
              'private'  => 0,
              'error'    => '',
              'userID'   => $userID,
-             'userName' => '',
+             'userName' => $userName,
              'success'  => true,
              'page'     => intval($page),
-             'data'     => renderProjectMenu(getProjects($userID, $passhash))];
+             'data'     => renderProjectMenu(getProjects($userID, $passhash, $user), $userID, $user)];
  }
   
 ?>

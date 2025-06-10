@@ -5,5 +5,6 @@
   $slug     = $input->{'slug'};
   $userID   = $input->{'userID'};
   $page     = $input->{'page'};
-  echo json_encode(pageData($slug, $page, $userID, $passhash));
+  $user     = $input->{'user'};
+  echo json_encode(pageData($slug, $page, $userID, $passhash, $user));
 ?>
