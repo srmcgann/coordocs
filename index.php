@@ -161,7 +161,7 @@
         position: absolute;
         transform: translate(-50%, -50%);
         left: 50%;
-        width: 400px;
+        width: 100%;
       }
       .projectDetailsTable{
         border-collapse: collapse;
@@ -973,7 +973,7 @@
           >
           all
         </label>
-        <div class="vSpc"></div>
+        <div class="vSpc" style="margin-top:-2px;"></div>
         <label
           style="margin-left; 20px;"
           class="checkmarkContainer"
@@ -1107,11 +1107,12 @@
           searchField.value = ''
 
           var searchMode = document.querySelector('input[name="searchParams"]:checked').value
-          var caseSensitive = document.querySelector('#caseSensitiveSearchCheck').value
-          var exact = document.querySelector('#exactSearchCheck').value
+          var caseSensitive = document.querySelector('#caseSensitiveSearchCheck').checked
+          var exact = document.querySelector('#exactSearchCheck').checked
           
           let sendData = { search, userID, passhash, exact, searchMode,
                            caseSensitive, projectUserID, slug: tSlug}
+          console.log(sendData)
           var url = URLbase + 'search.php'
           fetch(url, {
             method: 'POST',
@@ -1954,39 +1955,44 @@
           }else{
             var teEl = document.querySelector('#textEditor')
             if(teEl) teEl.remove()
-            var dh = ''
+            var dh = []
             if(highlight) {
-              dh = decodeURIComponent(highlight)
+              highlight.split(',').forEach(v=>dh.push(v))
               document.querySelector('#removeHighlightingContainer').style.display = 'inline-block'
             }
             
+            console.log('success', success)
             var htmlObj = success ? 
               MarkdownToHTML.Convert(html, CurPage(),
                 document.querySelector('#pageNo').parentNode, mainEl) :
                 { html, totalPages: totalPages() }
             
             // highlight search string maybe
-            var hHtml
+            var hHtml = htmlObj.html, s, s2, ct
             if(highlight){
-              var s = '', s2, ct = 0
-              var splt = htmlObj.html.toLowerCase().split(dh.toLowerCase())
-              splt.forEach((v, i) => {
-                for(var j = 0; j < v.length; ++j){
-                  s += htmlObj.html[ct]
-                  ct++
-                }
-                if(i < splt.length - 1){
-                  s2 = ''
-                  for(var j = 0; j < dh.length; ++j){
-                    s2 += htmlObj.html[ct]
+              dh.map(dh => {
+                htmlObj.html = hHtml
+                s = '', ct = 0
+                var splt = htmlObj.html.toLowerCase().split(dh.toLowerCase())
+                splt.forEach((v, i) => {
+                  for(var j = 0; j < v.length; ++j){
+                    s += htmlObj.html[ct]
                     ct++
                   }
-                  s += (s.substr(s.length-20).toLowerCase().indexOf('src=') == -1 &&
-                        s.substr(s.length-20).toLowerCase().indexOf('href=') == -1) ?
-                         `<font class="coordocsSearchResult" class="highlight">${s2}</font>` : s2
-                }
+                  if(i < splt.length - 1){
+                    s2 = ''
+                    for(var j = 0; j < dh.length; ++j){
+                      s2 += htmlObj.html[ct]
+                      ct++
+                    }
+                    s += (s.substr(s.length-20).toLowerCase().indexOf('src=') == -1 &&
+                          s.substr(s.length-20).toLowerCase().indexOf('href=') == -1) ?
+                           `<font class="coordocsSearchResult" class="highlight">${s2}</font>` : s2
+                  }
+                })
+                hHtml = s
               })
-              hHtml = s.replaceAll("\n", "<br>\n")
+              hHtml = hHtml.replaceAll("\n", "<br>\n")
             }else{
               hHtml = htmlObj.html
             }
@@ -2068,6 +2074,7 @@
     </script>
   </body>
 </html>
+
 
 
 

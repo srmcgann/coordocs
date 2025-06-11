@@ -194,50 +194,124 @@
     $esearch = str_replace('_', '%2F', $esearch);
     $esearch = str_replace('.', '%2E', $esearch);
     $esearch = str_replace('-', '%2D', $esearch);
-    $lsearch = strtolower($search);
-    for($i = 0; $i < mysqli_num_rows($res); ++$i){
-      $row = mysqli_fetch_assoc($res);
-      $data = strtolower($row['data']);
-      if(strpos($data, $lsearch) !== false){
-        $success = true;
-        $epages = explode('<pagebreak', $data);
-        $page = 0;
-        $hitsInPage = 0;
-        $hitsInProj = 0;
-        forEach($epages as $pg){
-          if(strpos($pg, $lsearch) !== false){
-            $hitsInProj += sizeof(explode($lsearch, $pg))-1;
+    if($exact){
+      $lsearch = $caseSensitive ? $search : strtolower($search);
+      for($i = 0; $i < mysqli_num_rows($res); ++$i){
+        $row = mysqli_fetch_assoc($res);
+        $data = $caseSensitive ? $row['data'] : strtolower($row['data']);
+        if(strpos($data, $lsearch) !== false){
+          $success = true;
+          $epages = explode('<pagebreak', $data);
+          $page = 0;
+          $hitsInPage = 0;
+          $hitsInProj = 0;
+          forEach($epages as $pg){
+            if(strpos($pg, $lsearch) !== false){
+              $hitsInProj += sizeof(explode($lsearch, $pg))-1;
+            }
           }
-        }
-        forEach($epages as $pg){
-          $page++;
-          if(strpos($pg, $lsearch) !== false){
-            $hitsInPage = sizeof(explode($lsearch, $pg))-1;
-            if(!isset($memo[$row['userID']])){
-              $uid = $row['userID'];
-              $sql = "SELECT * FROM users WHERE id = $uid";
-              $res2 = mysqli_query($link, $sql);
-              $row2 = mysqli_fetch_assoc($res2);
-              $memo[$row['userID']] = [
-                'avatar'   => $row2['avatar'],
-                'userName' => $row2['name'],
-                'userID'   => $uid,
+          forEach($epages as $pg){
+            $page++;
+            if(strpos($pg, $lsearch) !== false){
+              $hitsInPage = sizeof(explode($lsearch, $pg))-1;
+              if(!isset($memo[$row['userID']])){
+                $uid = $row['userID'];
+                $sql = "SELECT * FROM users WHERE id = $uid";
+                $res2 = mysqli_query($link, $sql);
+                $row2 = mysqli_fetch_assoc($res2);
+                $memo[$row['userID']] = [
+                  'avatar'   => $row2['avatar'],
+                  'userName' => $row2['name'],
+                  'userID'   => $uid,
+                ];
+              }
+              $hits[] = [
+                "userID"        => $row["userID"],
+                "slug"          => $row["slug"],
+                "created"       => prettyDate($row["created"]),
+                "updated"       => prettyDate($row["updated"]),
+                "name"          => $row["name"],
+                "avatar"        => $memo[$row['userID']]['avatar'],
+                "userName"      => $memo[$row['userID']]['userName'],
+                "userID"        => $memo[$row['userID']]['userID'],
+                "hitsInPage"    => $hitsInPage,
+                "hitsInProj"    => $hitsInProj,
+                "exact"         => $exact,
+                "caseSensitive" => $caseSensitive,
+                "page"          => $page,
+                "token"         => $lsearch,
+                "links"         => [],
               ];
             }
-            $hits[] = [
-              "userID"     => $row["userID"],
-              "slug"       => $row["slug"],
-              "created"    => prettyDate($row["created"]),
-              "updated"    => prettyDate($row["updated"]),
-              "name"       => $row["name"],
-              "avatar"     => $memo[$row['userID']]['avatar'],
-              "userName"   => $memo[$row['userID']]['userName'],
-              "userID"     => $memo[$row['userID']]['userID'],
-              "hitsInPage" => $hitsInPage,
-              "hitsInProj" => $hitsInProj,
-              "page"       => $page,
-              "links"      => [],
-            ];
+          }
+        }
+      }
+    }else{
+      $lsearchTokens = explode(' ', $caseSensitive ? $search : strtolower($search));
+      $ct   = 0;
+      $memoa = [];
+      $memo2 = [];
+      forEach($lsearchTokens as $lsearch){
+        $ct++;
+        for($i = 0; $i < mysqli_num_rows($res); ++$i){
+          if($ct==1){
+            $row = mysqli_fetch_assoc($res);
+            $memoa[$i] = $row;
+          }else{
+            $row = $memoa[$i];
+          }
+          $data = $caseSensitive ? $row['data'] : strtolower($row['data']);
+          if(strpos($data, $lsearch) !== false){
+            $success = true;
+            $epages = explode('<pagebreak', $data);
+            $page = 0;
+            $hitsInPage = 0;
+            $hitsInProj = 0;
+            forEach($epages as $pg){
+              if(strpos($pg, $lsearch) !== false){
+                $hitsInProj += sizeof(explode($lsearch, $pg))-1;
+              }
+            }
+            forEach($epages as $pg){
+              if($ct == 1) $memo2[$i] = [];
+              $page++;
+              if(strpos($pg, $lsearch) !== false){
+                $hitsInPage = sizeof(explode($lsearch, $pg))-1;
+                if(!isset($memo[$row['userID']])){
+                  $uid = $row['userID'];
+                  if($ct == 1){
+                    $sql = "SELECT * FROM users WHERE id = $uid";
+                    $res2 = mysqli_query($link, $sql);
+                    $row2 = mysqli_fetch_assoc($res2);
+                    $memo2[$i][$page-1] = $row2;
+                  }else{
+                    $row2 = $memo2[$i][$page-1];
+                  }
+                  $memo[$row['userID']] = [
+                    'avatar'   => $row2['avatar'],
+                    'userName' => $row2['name'],
+                    'userID'   => $uid,
+                  ];
+                }
+                $hits[] = [
+                  "userID"        => $row["userID"],
+                  "slug"          => $row["slug"],
+                  "created"       => prettyDate($row["created"]),
+                  "updated"       => prettyDate($row["updated"]),
+                  "name"          => $row["name"],
+                  "avatar"        => $memo[$row['userID']]['avatar'],
+                  "userName"      => $memo[$row['userID']]['userName'],
+                  "userID"        => $memo[$row['userID']]['userID'],
+                  "exact"         => $exact,
+                  "caseSensitive" => $caseSensitive,
+                  "hitsInPage"    => $hitsInPage,
+                  "hitsInProj"    => $hitsInProj,
+                  "page"          => $page,
+                  "token"         => $lsearch,
+                  "links"         => [],
+                ];
+              }
+            }
           }
         }
       }
@@ -247,19 +321,30 @@
     $memo  = [];
     forEach($hits as $hit){
       if(!isset($memo[$hit['slug']])){
+        $nHits[$hit['slug']]['tokens'] = [];
+        $nHits[$hit['slug']]['hitsInPage'] = 0;
         $memo[$hit['slug']] = 1;
-        forEach($hit as $key => $val) $nHits[$hit['slug']][$key] = $val;
+        forEach($hit as $key => $val) {
+          if($key != "hitsInPage") $nHits[$hit['slug']][$key] = $val;
+        }
       }
-      $nHits[$hit['slug']]['links'][] = [
-        'href' => 
-          "./?h=$esearch&s={$hit['slug']}&p={$hit['page']}",
-        'text' => "page link (<font style=\"color: #484\">pg# {$hit['page']}</font>)",
-        'hitsInPage' => $hit['hitsInPage'],
-        ];
+      $nHits[$hit['slug']]['tokens'][] = $hit['token'];
+      $nHits[$hit['slug']]['hitsInPage'] += $hit['hitsInPage'];
     }
-    //$hits = [];
-    //forEach($nHits as $key => $hit) $hits[] = $hit;
     
+    $memo2 = [];
+    forEach($hits as $hit){
+      if(!isset($memo2[$hit['slug']][$hit['page']])){
+        $memo2[$hit['slug']][$hit['page']] = 1;
+        $tokens = implode(',', $nHits[$hit['slug']]['tokens']);
+        $nHits[$hit['slug']]['links'][] = [
+          'href' => 
+            "./?h=$tokens&s={$hit['slug']}&p={$hit['page']}",
+          'text' => "page link (<font style=\"color: #484\">pg# {$hit['page']}</font>)",
+          'hitsInPage' => $hit['hitsInPage'],
+          ];
+      }
+    }
     
     $ret = "<br><br>SEARCH RESULTS MATCHING:<br>&quot;$search&quot;<br><br>";
     
@@ -467,7 +552,7 @@
         $ret .= "</div>";
       }
     }else{
-      $ret = '<div class="projectList" style="display: inline-block; width: 400px; position: absolute; top: calc(50% - 100px); left: 50%; transform: translate(-50%, -50%);"><br>my projects<br><br>';
+      $ret = '<div class="projectList" style="display: inline-block; width: 100%; position: absolute; top: calc(50% - 100px); left: 50%; transform: translate(-50%, -50%);"><br>my projects<br><br>';
       $ret .= '<br><br><br><div style="color: #888;"> you have no projects </div><br>';
       $ret .= '<div style="color: #888;"> create a new one by clicking \'new\' above </div>';
     }
@@ -859,5 +944,7 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
+
+
 
 

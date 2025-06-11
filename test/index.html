@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Coordinates boilerplate example</title>
+    <style>
+      body, html{
+        background: #333;
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+    
+      import * as Coordinates from
+        'https://srmcgann.github.io/Coordinates/coordinates.min.js'
+        
+
+      const dir = 'https://srmcgann.github.io/Coordinates/'
+      
+      
+      var refTexture = `${dir}resources/pseudoEquirectangular_1.jpg`
+      
+      const C = Math.cos
+      const S = Math.sin
+      
+    
+      var renderer = await Coordinates.Renderer({
+        ambientLight: 0, margin: 0, fov: 900 / 2,
+        width: 960, height: 540,
+      })
+      Coordinates.AnimationLoop(renderer, 'Draw')
+
+      var shader = await Coordinates.BasicShader(renderer, 
+                            [
+                              { uniform: { type: 'phong', value: .475 } },
+                              { uniform: {
+                                type: 'reflection',
+                                map: refTexture,
+                                flipReflections: false,
+                                playbackSpeed: .5,
+                                value: .8 }
+                              }
+                            ])
+
+      var treeShader = await Coordinates.BasicShader(renderer, 
+                            [
+                              { uniform: { type: 'phong', value: .33 } },
+                              { uniform: {
+                                type: 'reflection',
+                                map: refTexture,
+                                flipReflections: true,
+                                enabled: true,
+                                playbackSpeed: .5,
+                                value: .1 }
+                              }
+                            ])
+
+      var backgroundShader = await Coordinates.BasicShader(renderer,
+                                [
+                                  { lighting: { type: 'ambientLight', value: .65 } },
+                                  { uniform: { type: 'phong', value: 0 } }
+                                ])
+      
+      var shapes = []
+      
+      var geoOptions = {
+        shapeType: 'dodecahedron',
+        name: 'background',
+        subs: 3,
+        colorMix: 0,
+        map: refTexture,
+        playbackSpeed: .5,
+        size: 1e4,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        shapes.push(geometry)
+        backgroundShader.ConnectGeometry(geometry)
+      })
+      
+      var geoOptions = {
+        shapeType: 'cube',
+        name: 'cube',
+        y: -12,
+        subs: 2,
+        map: `${dir}/resources/grid_grey_dark_po2.jpg`,
+        color: 0xff0000,
+        sphereize: 1,
+        averageNormals: true,
+        colorMix: .1,
+        equirectangular: true,
+        size: 24,
+        scaleZ: .7,
+        scaleY: .2,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        shapes.push(geometry)
+        shader.ConnectGeometry(geometry)
+      })
+      
+      var geoOptions = {
+        shapeType: 'custom shape',
+        url: `${dir}/custom shapes/tree c/tree c.json`,
+        map: `${dir}/custom shapes/tree c/tree c 2_lowres.jpg`,
+        x: -14,
+        y: -8,
+        color: 0xffffff,
+        colorMix: 0,
+      }
+      Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        shapes.push(geometry)
+        treeShader.ConnectGeometry(geometry)
+        Coordinates.ShapeToLines(geometry, {
+          x: 14,
+          name: 'lines',
+          size: 2,
+          penumbra: .3,
+        }).then(shp => {
+          shapes.push(shp.shape)
+        })
+      })
+      
+      var geoOptions = {
+        shapeType: 'point light',
+        name: 'light',
+        color: 0xffffff,
+        lum: 1,
+        y: -5,
+        showSource: true,
+        map: `${dir}resources/stars/star1.png`,
+        size: 5,
+      }
+      await Coordinates.LoadGeometry(renderer, geoOptions).then(async (geometry) => {
+        shapes.push(geometry)
+      })
+      
+      renderer.yaw = Math.PI / 2
+      window.Draw = () => {
+        var t = renderer.t
+        renderer.z = 28 * 2
+        renderer.pitch = .5 + C(renderer.t/8 + Math.PI/2) / 1.5
+        renderer.yaw += .002
+        shapes.forEach((shape, idx) => {
+          switch(shape.name){
+            case 'particles': case 'background': break
+            break
+            case 'cube':
+              shape.color = Coordinates.HexFromHSV(t*20+180,1,1)
+              shape.yaw = t / 2
+            break
+            case 'light':
+              var p
+              shape.x = S(p=-t*8) * 24
+              shape.z = C(p) * 24
+            break
+            default:
+              if(shape.name == 'lines') shape.color = Coordinates.HexFromHSV(t*99,.5+C(t*2)/2,1)
+              var x = shape.x
+              var z = shape.z
+              var p = t / 2 + (idx%2 ? -1 : 1) * Math.PI / 2
+              var d = Math.hypot(x, z)
+              shape.x = S(p) * d
+              shape.z = C(p) * d
+              shape.yaw = p
+            break
+          }
+          renderer.Draw(shape)
+        })
+      }
+      
+    </script>
+  </body>
+</html>
+
