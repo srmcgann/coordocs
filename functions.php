@@ -168,7 +168,7 @@
           $sanProjectUserID = intval($projectUserID);
           $sql = "SELECT * FROM projects WHERE userID = $sanProjectUserID AND private = 0";
         }else{
-          $sql = "SELECT * FROM projects WHERE userID = $sanUserID AND private = 0";
+          $sql = "SELECT * FROM projects WHERE userID = $sanUID AND private = 0";
         }
       break;
       case 'curDocSearch':
@@ -944,6 +944,7 @@ changes made here are pushed immediately, so take care with keystrokes.
  }
   
 ?>
+
 
 
 

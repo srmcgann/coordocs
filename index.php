@@ -1692,7 +1692,7 @@
         }).then(res => res.json()).then(data => {
           
           if(data.success) {
-            if(1 ||loggedin){
+            if(loggedin){
               html = data.data
               var u
               SetOwner(u = GetURLParam('u') || data.userID || userID).then(user => {
@@ -2017,7 +2017,12 @@
       }
       
       const Refresh = (success = true) => {
-
+        if(loggedin){
+          document.querySelector('#userSearchContainer').style.display = 'inline'
+        }else{
+          document.querySelector('#userSearchContainer').style.display = 'none'
+          setTimeout(()=>{document.querySelector('#everythingSearch').click()},0)
+        }
         if(slug) {
           document.querySelector('#curDocSearchContainer').style.display = 'inline'
           document.querySelector('#curDocSearchContainer').click()
@@ -2074,6 +2079,7 @@
     </script>
   </body>
 </html>
+
 
 
 
