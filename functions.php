@@ -905,23 +905,33 @@ changes made here are pushed immediately, so take care with keystrokes.
                    'page'     => intval($page),
                    'data'     => $data];
         }else{
+          $pUID = intval($user ? $user : $userID);
+          $sql = "SELECT name FROM users WHERE id = $pUID";
+          $res = mysqli_query($link, $sql);
+          $row = mysqli_fetch_assoc($res);
+          $userName = $row['name'];
           return [ 'name'     => "create or search projects",
                    'slug'     => $slug,
                    'private'  => 0,
-                   'userID'   => $userID,
-                   'userName' => '',
+                   'userID'   => $pUID,
+                   'userName' => $userName,
                    'success'  => false,
                    'error'    => "slug ($slug) not user\'s. user ok.",
                    'page'     => intval($page),
                    'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID, $user)];
         }
       }else{
+        $pUID = intval($user ? $user : $userID);
+        $sql = "SELECT name FROM users WHERE id = $pUID";
+        $res = mysqli_query($link, $sql);
+        $row = mysqli_fetch_assoc($res);
+        $userName = $row['name'];
         return [ 'name'     => "create or search projects",
                  'slug'     => $slug,
                  'private'  => 0,
                  'error'    => 'user auth not ok.',
-                 'userID'   => $userID,
-                 'userName' => '',
+                 'userID'   => $pUID,
+                 'userName' => $userName,
                  'success'  => false,
                  'page'     => intval($page),
                  'data'     => renderProjectMenu(getProjects($userID, $passhash), $userID, $user)];
@@ -936,7 +946,7 @@ changes made here are pushed immediately, so take care with keystrokes.
              'slug'     => $slug,
              'private'  => 0,
              'error'    => '',
-             'userID'   => $userID,
+             'userID'   => $pUID,
              'userName' => $userName,
              'success'  => true,
              'page'     => intval($page),
